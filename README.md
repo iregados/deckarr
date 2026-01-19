@@ -4,6 +4,14 @@ Deckarr is a modern Android app built with Kotlin Multiplatform and Jetpack Comp
 it has only Android implementation, but we hope to add more platforms in the future.
 It provides a seamless experience for managing and discovering movies, series, and downloads.
 
+## Screenshots
+
+<img src="screenshots/screenshot_1.png" alt="Screenshot 1" width="20%"/>
+<img src="screenshots/screenshot_2.png" alt="Screenshot 2" width="20%"/>
+<img src="screenshots/screenshot_3.png" alt="Screenshot 3" width="20%"/>
+<img src="screenshots/screenshot_4.png" alt="Screenshot 4" width="20%"/>
+<img src="screenshots/screenshot_5.png" alt="Screenshot 5" width="20%"/>
+
 ## Features
 
 - Browse and search for movies and series
