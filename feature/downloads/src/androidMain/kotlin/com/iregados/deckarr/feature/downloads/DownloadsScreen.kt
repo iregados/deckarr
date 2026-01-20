@@ -45,7 +45,7 @@ fun DownloadsScreen(
     var removedTorrentId by remember { mutableStateOf<Int?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(lifecycleOwner) {
+    LaunchedEffect(lifecycleOwner.lifecycle) {
         downloadsViewModel.startObserving(lifecycleOwner.lifecycle)
     }
 

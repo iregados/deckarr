@@ -13,11 +13,16 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.microseconds
 
 class DownloadsViewModel(
     private val downloadsRepository: DownloadsRepository
@@ -31,10 +36,10 @@ class DownloadsViewModel(
         )
 
     private val _notificationFlow = MutableSharedFlow<Notification>(replay = 0)
-    val notificationFlow: SharedFlow<Notification> = _notificationFlow
+    val notificationFlow = _notificationFlow.asSharedFlow()
     private var stopObserver = false
 
-    private var lastCallTime = System.currentTimeMillis()
+    private var lastCallTime = Clock.System.now()
 
     init {
         downloadsRepository.getConfigFlow()
@@ -70,12 +75,14 @@ class DownloadsViewModel(
                     if (_uiState.value.needsConfiguration) return@repeatOnLifecycle
                     if (stopObserver) return@repeatOnLifecycle
 
-                    if (System.currentTimeMillis() - lastCallTime >= 60_000) {
+                    val now = Clock.System.now()
+                    if (now >= lastCallTime.plus(60_000.microseconds)) {
                         getAllData()
                     } else {
                         getUpdate()
                     }
-                    lastCallTime = System.currentTimeMillis()
+                    lastCallTime = Clock.System.now()
+
                     delay(5_000)
                 }
             }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -31,7 +32,7 @@ class MovieDetailViewModel(
         )
 
     private val _notificationFlow = MutableSharedFlow<Notification>(replay = 0)
-    val notificationFlow: SharedFlow<Notification> = _notificationFlow
+    val notificationFlow = _notificationFlow.asSharedFlow()
 
     init {
         loadData()
