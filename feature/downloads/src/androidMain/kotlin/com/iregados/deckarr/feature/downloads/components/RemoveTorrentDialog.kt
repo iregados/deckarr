@@ -53,7 +53,9 @@ fun RemoveTorrentDialog(
                     )
                     Switch(
                         checked = deleteFiles,
-                        onCheckedChange = {},
+                        onCheckedChange = {
+                            deleteFiles = !deleteFiles
+                        },
                         interactionSource = iS1
                     )
                 }

@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.StateFlow
 class RadarrRepository(
     private val radarrApi: RadarrApi
 ) {
-
     fun getConfigFlow(): StateFlow<RadarrApiConfig> = radarrApi.configFlow
 
     suspend fun systemStatus(

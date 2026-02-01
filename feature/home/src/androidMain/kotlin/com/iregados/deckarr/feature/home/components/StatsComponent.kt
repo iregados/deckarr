@@ -296,8 +296,8 @@ fun StatsComponent(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = (downloadsState.stats?.cumulativeStats?.uploadedBytes?.toFloat()
-                            ?.div(downloadsState.stats?.cumulativeStats?.downloadedBytes ?: 1)
+                        text = (downloadsState.stats?.uploadedBytes?.toFloat()
+                            ?.div(downloadsState.stats?.downloadedBytes ?: 1)
                             ?.round(2)
                             ?: "-").toString(),
                         style = MaterialTheme.typography.labelMedium
@@ -320,7 +320,7 @@ fun StatsComponent(
                     )
                     Text(
                         text = downloadsState.torrents
-                            ?.sumOf { it.totalSize }
+                            ?.sumOf { it.totalSize ?: 0L }
                             ?.toFormatedSize() ?: "0",
                         style = MaterialTheme.typography.labelMedium
                     )

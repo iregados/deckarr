@@ -1,10 +1,11 @@
 package com.iregados.api.transmission.dto
 
+import com.iregados.api.common.interfaces.TorrentClientConfig
 import io.ktor.http.URLProtocol
 
 data class TransmissionApiConfig(
-    val protocol: URLProtocol,
-    val host: String,
-    val username: String,
-    val password: String
-)
+    override val protocol: URLProtocol,
+    override val host: String,
+    override val username: String,
+    override val password: String
+) : TorrentClientConfig

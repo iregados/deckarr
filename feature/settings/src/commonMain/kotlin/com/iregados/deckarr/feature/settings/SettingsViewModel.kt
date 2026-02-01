@@ -27,9 +27,9 @@ class SettingsViewModel(
         _uiState,
         preferencesRepository.getRadarrSettings(),
         preferencesRepository.getSonarrSettings(),
-        preferencesRepository.getTransmissionSettings(),
+        preferencesRepository.getDownloadsSettings(),
         preferencesRepository.getTheme()
-    ) { currentsState, radarrSettings, sonarrSettings, transmissionSettings, theme ->
+    ) { currentsState, radarrSettings, sonarrSettings, downloadsSettings, theme ->
         currentsState.copy(
             radarrSettingsState = currentsState.radarrSettingsState.copy(
                 connectionAddress = radarrSettings.connectionAddress,
@@ -39,10 +39,11 @@ class SettingsViewModel(
                 connectionAddress = sonarrSettings.connectionAddress,
                 apiKey = sonarrSettings.apiKey
             ),
-            transmissionSettingsState = currentsState.transmissionSettingsState.copy(
-                connectionAddress = transmissionSettings.connectionAddress,
-                username = transmissionSettings.username,
-                password = transmissionSettings.password,
+            downloadsSettingsState = currentsState.downloadsSettingsState.copy(
+                selectedClient = downloadsSettings.selectedClient,
+                connectionAddress = downloadsSettings.connectionAddress,
+                username = downloadsSettings.username,
+                password = downloadsSettings.password,
             ),
             currentTheme = theme,
         )
@@ -181,30 +182,31 @@ class SettingsViewModel(
                 }
             }
 
-            is SettingsEvent.TestTransmissionConnection -> {
+            is SettingsEvent.TestDownloadsConnection -> {
                 job?.cancel()
                 job = viewModelScope.launch {
                     _uiState.update {
                         it.copy(
-                            transmissionSettingsState = it.transmissionSettingsState.copy(
+                            downloadsSettingsState = it.downloadsSettingsState.copy(
                                 isTesting = true,
                                 isEnabled = false
                             )
                         )
                     }
                     val result = downloadsRepository.testConnection(
+                        selectedClient = event.selectedClient,
                         connectionAddress = event.connectionAddress,
                         username = event.username,
                         password = event.password
                     )
 
                     if (result == null) {
-                        _errorFlow.emit("Error while connecting to Transmission")
+                        _errorFlow.emit("Error while connecting to Torrent Client")
                     }
 
                     _uiState.update {
                         it.copy(
-                            transmissionSettingsState = it.transmissionSettingsState.copy(
+                            downloadsSettingsState = it.downloadsSettingsState.copy(
                                 isTesting = false,
                                 isEnabled = result != null
                             )
@@ -213,16 +215,17 @@ class SettingsViewModel(
                 }
             }
 
-            is SettingsEvent.SaveTransmissionSettings -> {
+            is SettingsEvent.SaveDownloadsSettings -> {
                 viewModelScope.launch {
-                    preferencesRepository.setTransmissionSettings(
+                    preferencesRepository.setDownloadsSettings(
+                        selectedClient = event.selectedClient,
                         connectionAddress = event.connectionAddress,
                         username = event.username,
                         password = event.password
                     )
                     _uiState.update {
                         it.copy(
-                            transmissionSettingsState = it.transmissionSettingsState.copy(
+                            downloadsSettingsState = it.downloadsSettingsState.copy(
                                 isEnabled = false
                             )
                         )
@@ -231,11 +234,11 @@ class SettingsViewModel(
                 }
             }
 
-            SettingsEvent.ResetTransmissionStatus -> {
+            SettingsEvent.ResetDownloadsStatus -> {
                 job?.cancel()
                 _uiState.update {
                     it.copy(
-                        transmissionSettingsState = it.transmissionSettingsState.copy(
+                        downloadsSettingsState = it.downloadsSettingsState.copy(
                             isTesting = false,
                             isEnabled = false
                         )

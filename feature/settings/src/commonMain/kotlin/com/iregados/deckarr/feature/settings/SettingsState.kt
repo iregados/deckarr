@@ -1,5 +1,6 @@
 package com.iregados.deckarr.feature.settings
 
+import com.iregados.deckarr.core.domain.util.TorrentClientOption
 import com.iregados.deckarr.core.util.dto.ThemeOption
 import kotlinx.serialization.Serializable
 
@@ -9,7 +10,7 @@ data class SettingsState(
     val currentTheme: String = ThemeOption.System,
     val radarrSettingsState: RadarrSettingsState = RadarrSettingsState(),
     val sonarrSettingsState: SonarrSettingsState = SonarrSettingsState(),
-    val transmissionSettingsState: TransmissionSettingsState = TransmissionSettingsState(),
+    val downloadsSettingsState: DownloadsSettingsState = DownloadsSettingsState(),
 )
 
 @Serializable
@@ -29,7 +30,8 @@ data class SonarrSettingsState(
 )
 
 @Serializable
-data class TransmissionSettingsState(
+data class DownloadsSettingsState(
+    val selectedClient: TorrentClientOption = TorrentClientOption.Transmission,
     val connectionAddress: String = "",
     val username: String = "",
     val password: String = "",

@@ -42,6 +42,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(projects.core)
+                implementation(projects.api.common)
                 implementation(projects.api.radarr)
                 implementation(projects.api.sonarr)
                 implementation(projects.api.transmission)

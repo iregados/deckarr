@@ -30,9 +30,9 @@ fun DownloadsPager(
     uiState: DownloadsState,
     modifier: Modifier = Modifier,
     downloadsViewModel: DownloadsViewModel,
-    onRemoveTorrent: (id: Int) -> Unit
+    onRemoveTorrent: (id: String) -> Unit
 ) {
-    var expandedTorrentId by remember { mutableStateOf<Int?>(null) }
+    var expandedTorrentId by remember { mutableStateOf<String?>(null) }
 
     val downloadsTabsItems = remember(
         uiState.torrents,

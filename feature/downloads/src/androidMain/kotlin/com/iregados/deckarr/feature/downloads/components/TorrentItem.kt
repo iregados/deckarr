@@ -31,8 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.iregados.api.transmission.dto.Torrent
-import com.iregados.api.transmission.dto.TorrentStatus
+import com.iregados.api.common.dto.TorrentStatus
+import com.iregados.api.common.interfaces.Torrent
 import com.iregados.deckarr.core.theme.warningYellow
 import com.iregados.deckarr.core.util.extension.round
 import com.iregados.deckarr.core.util.extension.toEtaString
@@ -48,7 +48,7 @@ fun TorrentItem(
     isExpanded: Boolean,
     isUpdating: Boolean,
     onExpand: () -> Unit,
-    onRemoveTorrent: (id: Int) -> Unit,
+    onRemoveTorrent: (id: String) -> Unit,
     downloadsViewModel: DownloadsViewModel
 ) {
     val statusColor = when (torrent.status) {
@@ -135,16 +135,9 @@ fun TorrentItem(
         ) {
             Text(
                 text = "${
-                    (torrent.totalSize * (torrent.percentDone ?: 0f)).toLong().toFormatedSize()
-                } / ${torrent.totalSize.toFormatedSize()}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = if (torrent.status == TorrentStatus.DOWNLOADING) {
-                    "${torrent.peersSendingToUs}"
-                } else {
-                    "${torrent.peersGettingFromUs}"
-                } + " / ${torrent.peersConnected}",
+                    ((torrent.totalSize ?: 0L) * (torrent.percentDone ?: 0f)).toLong()
+                        .toFormatedSize()
+                } / ${torrent.totalSize?.toFormatedSize() ?: "-"}",
                 style = MaterialTheme.typography.bodySmall
             )
         }

@@ -1,10 +1,14 @@
 package com.iregados.deckarr.core.domain
 
 import com.iregados.deckarr.core.data.dao.DataStoreDao
+import com.iregados.deckarr.core.domain.dto.DownloadsSettings
 import com.iregados.deckarr.core.domain.dto.RadarrSettings
 import com.iregados.deckarr.core.domain.dto.SonarrSettings
-import com.iregados.deckarr.core.domain.dto.TransmissionSettings
 import com.iregados.deckarr.core.domain.util.APP_THEME
+import com.iregados.deckarr.core.domain.util.DOWNLOADS_CONNECTION_ADDRESS
+import com.iregados.deckarr.core.domain.util.DOWNLOADS_PASSWORD
+import com.iregados.deckarr.core.domain.util.DOWNLOADS_SELECTED_CLIENT
+import com.iregados.deckarr.core.domain.util.DOWNLOADS_USERNAME
 import com.iregados.deckarr.core.domain.util.RADARR_API_KEY
 import com.iregados.deckarr.core.domain.util.RADARR_CONNECTION_ADDRESS
 import com.iregados.deckarr.core.domain.util.RADARR_QUALITY_PROFILE_ID
@@ -13,17 +17,18 @@ import com.iregados.deckarr.core.domain.util.SONARR_API_KEY
 import com.iregados.deckarr.core.domain.util.SONARR_CONNECTION_ADDRESS
 import com.iregados.deckarr.core.domain.util.SONARR_QUALITY_PROFILE_ID
 import com.iregados.deckarr.core.domain.util.SONARR_ROOT_FOLDER_PATH
-import com.iregados.deckarr.core.domain.util.TRANSMISSION_CONNECTION_ADDRESS
-import com.iregados.deckarr.core.domain.util.TRANSMISSION_PASSWORD
-import com.iregados.deckarr.core.domain.util.TRANSMISSION_USERNAME
+import com.iregados.deckarr.core.domain.util.TorrentClientOption
 import com.iregados.deckarr.core.util.dto.ThemeOption
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 
 class PreferencesRepository(
     private val dataStoreDao: DataStoreDao
 ) {
+    private val json = Json
+
     suspend fun setRadarrSettings(
         connectionAddress: String,
         apiKey: String
@@ -40,14 +45,16 @@ class PreferencesRepository(
         dataStoreDao.saveString(SONARR_API_KEY, apiKey)
     }
 
-    suspend fun setTransmissionSettings(
+    suspend fun setDownloadsSettings(
+        selectedClient: TorrentClientOption,
         connectionAddress: String,
         username: String,
         password: String
     ) {
-        dataStoreDao.saveString(TRANSMISSION_CONNECTION_ADDRESS, connectionAddress)
-        dataStoreDao.saveString(TRANSMISSION_USERNAME, username)
-        dataStoreDao.saveString(TRANSMISSION_PASSWORD, password)
+        dataStoreDao.saveString(DOWNLOADS_SELECTED_CLIENT, json.encodeToString(selectedClient))
+        dataStoreDao.saveString(DOWNLOADS_CONNECTION_ADDRESS, connectionAddress)
+        dataStoreDao.saveString(DOWNLOADS_USERNAME, username)
+        dataStoreDao.saveString(DOWNLOADS_PASSWORD, password)
     }
 
     suspend fun setRadarrRootFolderPath(
@@ -104,13 +111,17 @@ class PreferencesRepository(
         }
     }
 
-    fun getTransmissionSettings(): Flow<TransmissionSettings> {
+    fun getDownloadsSettings(): Flow<DownloadsSettings> {
         return combine(
-            dataStoreDao.getString(TRANSMISSION_CONNECTION_ADDRESS),
-            dataStoreDao.getString(TRANSMISSION_USERNAME),
-            dataStoreDao.getString(TRANSMISSION_PASSWORD)
-        ) { connectionAddress, username, password ->
-            TransmissionSettings(
+            dataStoreDao.getString(DOWNLOADS_SELECTED_CLIENT),
+            dataStoreDao.getString(DOWNLOADS_CONNECTION_ADDRESS),
+            dataStoreDao.getString(DOWNLOADS_USERNAME),
+            dataStoreDao.getString(DOWNLOADS_PASSWORD)
+        ) { selectedClient, connectionAddress, username, password ->
+            DownloadsSettings(
+                selectedClient = if (selectedClient == null)
+                    TorrentClientOption.Transmission else
+                    json.decodeFromString(selectedClient),
                 connectionAddress = connectionAddress ?: "",
                 username = username ?: "",
                 password = password ?: ""

@@ -1,28 +1,23 @@
 package com.iregados.deckarr.feature.downloads
 
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
+import com.iregados.api.common.dto.TorrentImpl
 import com.iregados.deckarr.core.domain.DownloadsRepository
 import com.iregados.deckarr.core.util.dto.Notification
 import com.iregados.deckarr.core.util.extension.emitError
-import kotlinx.coroutines.async
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.microseconds
+import kotlin.time.Duration.Companion.seconds
 
 class DownloadsViewModel(
     private val downloadsRepository: DownloadsRepository
@@ -38,6 +33,7 @@ class DownloadsViewModel(
     private val _notificationFlow = MutableSharedFlow<Notification>(replay = 0)
     val notificationFlow = _notificationFlow.asSharedFlow()
     private var stopObserver = false
+    private var observerJob: Job? = null
 
     private var lastCallTime = Clock.System.now()
 
@@ -58,8 +54,11 @@ class DownloadsViewModel(
                     _uiState.update { it.copy(needsConfiguration = false) }
                     loadData()
                 }
-            }
-            .launchIn(viewModelScope)
+            }.stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                null
+            )
     }
 
     fun loadData() {
@@ -68,34 +67,38 @@ class DownloadsViewModel(
         getAllData()
     }
 
-    fun startObserving(lifecycle: Lifecycle) {
-        viewModelScope.launch {
-            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (true) {
-                    if (_uiState.value.needsConfiguration) return@repeatOnLifecycle
-                    if (stopObserver) return@repeatOnLifecycle
-
-                    val now = Clock.System.now()
-                    if (now >= lastCallTime.plus(60_000.microseconds)) {
-                        getAllData()
-                    } else {
-                        getUpdate()
-                    }
-                    lastCallTime = Clock.System.now()
-
-                    delay(5_000)
+    fun startObserving() {
+        observerJob?.cancel()
+        observerJob = viewModelScope.launch {
+            while (true) {
+                if (_uiState.value.needsConfiguration || stopObserver) {
+                    delay(500)
+                    continue
                 }
+
+                val now = Clock.System.now()
+                if (now >= lastCallTime.plus(60.seconds)) {
+                    getAllData()
+                } else {
+                    getUpdate()
+                }
+                lastCallTime = Clock.System.now()
+
+                delay(2_000)
             }
         }
+    }
+
+    fun stopObserving() {
+        observerJob?.cancel()
     }
 
     fun getAllData() {
         viewModelScope.launch {
             stopObserver = true
-            val torrentsDeferred = async { downloadsRepository.getTorrents() }
-            val statsDeferred = async { downloadsRepository.getStats() }
-            val torrents = torrentsDeferred.await()
-            val stats = statsDeferred.await()
+            val initialData = downloadsRepository.getTorrentsAndStats()
+            val torrents = initialData?.torrentList
+            val stats = initialData?.torrentSessionStats
 
             val totalDownloadSpeed = torrents?.sumOf { it.rateDownload ?: 0 }
             val totalUploadSpeed = torrents?.sumOf { it.rateUpload ?: 0 }
@@ -129,7 +132,26 @@ class DownloadsViewModel(
 
                 val updateMap = activeTorrents.associateBy { it.id }
                 val newList = (oldList.map { torrent ->
-                    updateMap[torrent.id] ?: torrent
+                    val updatedTorrent = updateMap[torrent.id]
+                    if (updatedTorrent != null) {
+                        (torrent as TorrentImpl).copy(
+                            name = updatedTorrent.name ?: torrent.name,
+                            addedDate = updatedTorrent.addedDate ?: torrent.addedDate,
+                            status = updatedTorrent.status ?: torrent.status,
+                            totalSize = updatedTorrent.totalSize ?: torrent.totalSize,
+                            percentDone = updatedTorrent.percentDone ?: torrent.percentDone,
+                            rateDownload = updatedTorrent.rateDownload ?: torrent.rateDownload,
+                            rateUpload = updatedTorrent.rateUpload ?: torrent.rateUpload,
+                            uploadedEver = updatedTorrent.uploadedEver ?: torrent.uploadedEver,
+                            downloadedEver = updatedTorrent.downloadedEver
+                                ?: torrent.downloadedEver,
+                            eta = updatedTorrent.eta ?: torrent.eta,
+                            isFinished = updatedTorrent.isFinished ?: torrent.isFinished,
+                            isStalled = updatedTorrent.isStalled ?: torrent.isStalled
+                        )
+                    } else {
+                        torrent
+                    }
                 } + activeTorrents.filter { updateTorrent ->
                     oldList.none { it.id == updateTorrent.id }
                 })

@@ -44,6 +44,7 @@ kotlin {
             dependencies {
                 implementation(projects.api.common)
                 implementation(projects.api.transmission)
+                implementation(projects.api.qbittorrent)
                 implementation(projects.api.radarr)
                 implementation(projects.api.sonarr)
 

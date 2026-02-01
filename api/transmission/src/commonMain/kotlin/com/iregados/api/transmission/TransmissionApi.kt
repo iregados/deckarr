@@ -5,7 +5,14 @@ import co.touchlab.kermit.NoTagFormatter
 import co.touchlab.kermit.loggerConfigInit
 import co.touchlab.kermit.platformLogWriter
 import com.iregados.api.common.ApiResult
+import com.iregados.api.common.interfaces.TorrentClientApi
 import com.iregados.api.transmission.dto.TransmissionApiConfig
+import com.iregados.api.transmission.methods.internalGetTorrentListAndStats
+import com.iregados.api.transmission.methods.internalGetTorrentListRecentlyActive
+import com.iregados.api.transmission.methods.internalPing
+import com.iregados.api.transmission.methods.internalRemoveTorrent
+import com.iregados.api.transmission.methods.internalResumeTorrent
+import com.iregados.api.transmission.methods.internalStopTorrent
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
@@ -16,9 +23,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import java.util.Base64
 
@@ -27,7 +31,7 @@ class TransmissionApi(
     private var host: String,
     private var username: String,
     private var password: String
-) {
+) : TorrentClientApi {
     private val log = Logger(
         config = loggerConfigInit(
             platformLogWriter(NoTagFormatter)
@@ -36,29 +40,13 @@ class TransmissionApi(
     )
     private var client = createClient(protocol, host, username, password)
     private var sessionId: String? = null
-    private val _configFlow = MutableStateFlow(
-        TransmissionApiConfig(
-            protocol,
-            host,
-            username,
-            password
-        )
+    override val config = TransmissionApiConfig(
+        protocol,
+        host,
+        username,
+        password
     )
-    val configFlow: StateFlow<TransmissionApiConfig> = _configFlow.asStateFlow()
 
-    fun configure(
-        protocol: URLProtocol,
-        host: String,
-        username: String,
-        password: String
-    ) {
-        this.protocol = protocol
-        this.host = host
-        this.username = username
-        this.password = password
-        client = createClient(protocol, host, username, password)
-        _configFlow.value = TransmissionApiConfig(protocol, host, username, password)
-    }
 
     private fun createClient(
         protocol: URLProtocol,
@@ -100,6 +88,14 @@ class TransmissionApi(
             }
         }
     }
+
+    override suspend fun getTorrentListAndStats() = internalGetTorrentListAndStats()
+    override suspend fun getTorrentListRecentlyActive() = internalGetTorrentListRecentlyActive()
+    override suspend fun ping() = internalPing()
+    override suspend fun stopTorrent(ids: List<String>) = internalStopTorrent(ids)
+    override suspend fun resumeTorrent(ids: List<String>) = internalResumeTorrent(ids)
+    override suspend fun removeTorrent(ids: List<String>, deleteLocalData: Boolean) =
+        internalRemoveTorrent(ids, deleteLocalData)
 
     internal suspend inline fun <reified Req, reified Res> rpcCall(
         body: Req

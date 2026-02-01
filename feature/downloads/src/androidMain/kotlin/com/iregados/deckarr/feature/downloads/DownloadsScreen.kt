@@ -20,7 +20,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iregados.deckarr.core.util.extension.toFormatedSpeed
@@ -42,11 +44,27 @@ fun DownloadsScreen(
     val uiState by downloadsViewModel.uiState.collectAsStateWithLifecycle()
 
     var showRemoveTorrentDialog by remember { mutableStateOf(false) }
-    var removedTorrentId by remember { mutableStateOf<Int?>(null) }
+    var removedTorrentId by remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(lifecycleOwner.lifecycle) {
-        downloadsViewModel.startObserving(lifecycleOwner.lifecycle)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    downloadsViewModel.startObserving()
+                }
+
+                Lifecycle.Event.ON_STOP -> {
+                    downloadsViewModel.stopObserving()
+                }
+
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     if (uiState.isLoading) {

@@ -34,7 +34,7 @@ fun ServicesComponent(
         initialValue = SheetValue.Hidden,
         skipHiddenState = false
     )
-    val transmissionBottomSheetState = rememberStandardBottomSheetState(
+    val downloadsBottomSheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.Hidden,
         skipHiddenState = false
     )
@@ -72,16 +72,16 @@ fun ServicesComponent(
         }
     }
 
-    if (transmissionBottomSheetState.isVisible) {
+    if (downloadsBottomSheetState.isVisible) {
         ModalBottomSheet(
-            sheetState = transmissionBottomSheetState,
+            sheetState = downloadsBottomSheetState,
             onDismissRequest = {
-                coroutineScope.launch { transmissionBottomSheetState.hide() }
+                coroutineScope.launch { downloadsBottomSheetState.hide() }
             }
         ) {
-            TransmissionConfigurationComponent(
+            DownloadsConfigurationComponent(
                 onDismiss = {
-                    coroutineScope.launch { transmissionBottomSheetState.hide() }
+                    coroutineScope.launch { downloadsBottomSheetState.hide() }
                 },
                 settingsViewModel = settingsViewModel
             )
@@ -145,14 +145,14 @@ fun ServicesComponent(
                     .fillMaxWidth()
                     .clickable {
                         coroutineScope.launch {
-                            transmissionBottomSheetState.show()
+                            downloadsBottomSheetState.show()
                         }
                     }
                     .padding(start = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Transmission",
+                    text = "Downloads",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
