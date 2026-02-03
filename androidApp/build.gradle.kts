@@ -11,8 +11,8 @@ android {
         applicationId = "com.iregados.deckarr"
         minSdk = libs.versions.androidMinSdk.get().toInt()
         targetSdk = libs.versions.androidTargetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testProguardFiles("proguard-rules.pro")
@@ -30,9 +30,9 @@ android {
             )
         }
         debug {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             isShrinkResources = false
-            isDebuggable = true
+            isDebuggable = false
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
