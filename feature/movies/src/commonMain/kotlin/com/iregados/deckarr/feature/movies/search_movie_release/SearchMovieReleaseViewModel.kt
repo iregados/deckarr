@@ -6,6 +6,7 @@ import com.iregados.deckarr.api.common.ApiResult
 import com.iregados.deckarr.api.radarr.dto.Movie
 import com.iregados.deckarr.api.radarr.dto.RadarrRelease
 import com.iregados.deckarr.core.domain.RadarrRepository
+import com.iregados.deckarr.core.util.dto.ReleaseSortOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -51,16 +52,15 @@ class SearchMovieReleaseViewModel(
             }
 
             val result = radarrRepository.getReleases(movieId)
-            val releases = result.getOrNull()
+            val torrentReleases = result.getOrNull()
                 ?.filter { it.protocol == "torrent" }
-                ?.sortedBy { it.indexer }
-                ?.sortedBy { it.size }
-                ?.sortedByDescending { it.approved }
 
-            _uiState.update {
-                it.copy(
+            _uiState.update { state ->
+                state.copy(
                     isLoading = false,
-                    radarrReleases = releases,
+                    radarrReleases = torrentReleases?.let {
+                        sortReleases(it, state.sortOption, state.sortAscending)
+                    },
                     error = (result as? ApiResult.Error)?.message,
                 )
             }
@@ -96,5 +96,41 @@ class SearchMovieReleaseViewModel(
                 }
             }
         }
+    }
+
+    fun onSortSelected(option: ReleaseSortOption) {
+        _uiState.update { state ->
+            val ascending = if (state.sortOption == option) {
+                !state.sortAscending
+            } else {
+                option.defaultAscending
+            }
+            state.copy(
+                sortOption = option,
+                sortAscending = ascending,
+                radarrReleases = state.radarrReleases?.let { sortReleases(it, option, ascending) },
+            )
+        }
+    }
+
+    private fun sortReleases(
+        releases: List<RadarrRelease>,
+        option: ReleaseSortOption,
+        ascending: Boolean,
+    ): List<RadarrRelease> {
+        val primary: Comparator<RadarrRelease> = when (option) {
+            ReleaseSortOption.APPROVED -> compareBy { it.approved }
+            ReleaseSortOption.SEEDERS -> compareBy { it.seeders }
+            ReleaseSortOption.SIZE -> compareBy { it.size }
+            ReleaseSortOption.QUALITY -> compareBy<RadarrRelease> { it.quality.quality.resolution }
+                .thenBy { it.qualityWeight }
+
+            ReleaseSortOption.INDEXER -> compareBy { it.indexer.lowercase() }
+            ReleaseSortOption.AGE -> compareBy { it.ageMinutes }
+        }
+        val ordered = if (ascending) primary else primary.reversed()
+        return releases.sortedWith(
+            ordered.thenBy { it.size }.thenBy { it.indexer.lowercase() }
+        )
     }
 }

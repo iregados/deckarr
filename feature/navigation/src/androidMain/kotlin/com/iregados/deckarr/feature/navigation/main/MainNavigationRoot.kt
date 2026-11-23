@@ -1,5 +1,7 @@
 package com.iregados.deckarr.feature.navigation.main
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -97,9 +99,9 @@ fun MainNavigationRoot(
         modifier = Modifier.fillMaxSize(),
         entries = navigationState.toEntries(entryProvider),
         onBack = { navigator.goBack() },
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        popTransitionSpec = { fadeIn() togetherWith fadeOut() },
-        predictivePopTransitionSpec = { fadeIn() togetherWith fadeOut() },
+        transitionSpec = { fadeIn() togetherWith ExitTransition.KeepUntilTransitionsFinished },
+        popTransitionSpec = { EnterTransition.None togetherWith fadeOut() },
+        predictivePopTransitionSpec = { EnterTransition.None togetherWith fadeOut() },
         sceneDecoratorStrategies = listOf(homeSceneDecorator),
     )
 }

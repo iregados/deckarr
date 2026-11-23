@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,7 +35,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.core.components.ReleaseSortMenu
 import com.iregados.deckarr.core.util.extension.toFormatedSize
+import com.iregados.deckarr.core.util.extension.toFormattedAge
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -61,7 +64,16 @@ fun SearchMovieRelease(
                             "Close"
                         )
                     }
-                }
+                },
+                actions = {
+                    if (!uiState.radarrReleases.isNullOrEmpty()) {
+                        ReleaseSortMenu(
+                            selectedOption = uiState.sortOption,
+                            ascending = uiState.sortAscending,
+                            onSortSelected = { viewModel.onSortSelected(it) },
+                        )
+                    }
+                },
             )
         }
     ) { paddingValues ->
@@ -103,137 +115,144 @@ fun SearchMovieRelease(
                     .fillMaxSize()
                     .padding(paddingValues),
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(releases.size, key = { index ->
-                        releases[index].guid + releases[index].infoUrl
-                    }) { index ->
-                        Column(
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable {
-                                    viewModel.addReleaseToMovie(
-                                        radarrRelease = releases[index],
-                                    )
-                                }
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
+                key(uiState.sortOption, uiState.sortAscending) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(releases.size, key = { index ->
+                            releases[index].guid + releases[index].infoUrl
+                        }) { index ->
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth(),
-                                text = releases[index].title,
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(horizontal = 16.dp)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        viewModel.addReleaseToMovie(
+                                            radarrRelease = releases[index],
+                                        )
+                                    }
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                if (releases[index].approved) {
-                                    Icon(
-                                        modifier = Modifier
-                                            .size(18.dp),
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = "Approved",
-                                        tint = Color.Green.copy(green = .6f)
-                                    )
-                                } else {
-                                    Icon(
-                                        modifier = Modifier
-                                            .size(18.dp),
-                                        imageVector = Icons.Default.DoNotDisturb,
-                                        contentDescription = "Deny",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                Text(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    text = releases[index].title,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        Text(
-                                            modifier = Modifier,
-                                            text = "Size: ${releases[index].size.toFormatedSize()}",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                        Text(
-                                            modifier = Modifier,
-                                            text = releases[index].indexer,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        Text(
-                                            modifier = Modifier,
-                                            text = releases[index].quality.quality.name,
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                        Text(
+                                    if (releases[index].approved) {
+                                        Icon(
                                             modifier = Modifier
-                                                .weight(1f),
-                                            text = "Res.: " + (if (releases[index].quality.quality.resolution == 0L) "Unknown" else releases[index].quality.quality.resolution),
-                                            style = MaterialTheme.typography.bodySmall
+                                                .size(18.dp),
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Approved",
+                                            tint = Color.Green.copy(green = .6f)
                                         )
+                                    } else {
+                                        Icon(
+                                            modifier = Modifier
+                                                .size(18.dp),
+                                            imageVector = Icons.Default.DoNotDisturb,
+                                            contentDescription = "Deny",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            Text(
+                                                modifier = Modifier,
+                                                text = "Size: ${releases[index].size.toFormatedSize()}",
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                            Text(
+                                                modifier = Modifier.weight(1f),
+                                                text = releases[index].indexer,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                modifier = Modifier,
+                                                text = "Age: ${releases[index].ageMinutes.toFormattedAge()}",
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            Text(
+                                                modifier = Modifier,
+                                                text = releases[index].quality.quality.name,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                            Text(
+                                                modifier = Modifier
+                                                    .weight(1f),
+                                                text = "Res.: " + (if (releases[index].quality.quality.resolution == 0L) "Unknown" else releases[index].quality.quality.resolution),
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                            Text(
+                                                modifier = Modifier,
+                                                text = "S-${releases[index].seeders} / L-${releases[index].leechers}",
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (uiState.grabbingReleasesIds.contains(releases[index].guid)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 14.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                    }
+                                }
+                                if (uiState.grabbedReleasesIds.contains(releases[index].guid)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 14.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Text(
-                                            modifier = Modifier,
-                                            text = "S-${releases[index].seeders} / L-${releases[index].leechers}",
-                                            style = MaterialTheme.typography.bodySmall
+                                            text = "Grabbed",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.titleSmall
                                         )
                                     }
                                 }
-                            }
-
-                            if (uiState.grabbingReleasesIds.contains(releases[index].guid)) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 14.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                            if (uiState.grabbedReleasesIds.contains(releases[index].guid)) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 14.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Grabbed",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                }
-                            }
-                            if (uiState.errorWhileGrabbingReleasesIds.contains(releases[index].guid)) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 14.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Error while grabbing",
-                                        color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
+                                if (uiState.errorWhileGrabbingReleasesIds.contains(releases[index].guid)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 14.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "Error while grabbing",
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -78,6 +78,15 @@ idioms. When unsure how something is done, ask or study the closest existing exa
 - When 50% or less of an existing file changes, point to the exact file path and anchor (imports,
   function, class, or line context) and show only what to add, replace, or remove.
 
+## Rule 6 — Keep it simple and follow good practices
+
+- Always choose the simplest implementation that cleanly solves the current requirement.
+- Do not over-engineer, introduce speculative abstractions, or build workarounds for hypothetical
+  future problems (YAGNI).
+- Simplicity never means cutting corners: follow idiomatic Kotlin, Compose, and Android good
+  practices (proper state ownership, lifecycle awareness, null safety, clean error handling, and
+  framework-native APIs over hacks).
+
 ### Code patterns
 
 - **One primary declaration per file**, file name matches the declaration (`DownloadsScreen.kt`

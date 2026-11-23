@@ -3,8 +3,10 @@ package com.iregados.deckarr.feature.series.search_series_release
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iregados.deckarr.api.common.ApiResult
+import com.iregados.deckarr.api.sonarr.dto.SonarrRelease
 import com.iregados.deckarr.core.domain.SonarrRepository
 import com.iregados.deckarr.core.util.dto.Notification
+import com.iregados.deckarr.core.util.dto.ReleaseSortOption
 import com.iregados.deckarr.feature.series.search_series_release.navigation.keys.util.SearchSeriesReleaseParams
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,16 +57,15 @@ class SearchSeriesReleaseViewModel(
                     )
                 }
             }
-            val releases = result.getOrNull()
+            val torrentReleases = result.getOrNull()
                 ?.filter { it.protocol == "torrent" }
-                ?.sortedBy { it.indexer }
-                ?.sortedBy { it.size }
-                ?.sortedByDescending { it.approved }
 
-            _uiState.update {
-                it.copy(
+            _uiState.update { state ->
+                state.copy(
                     isLoading = false,
-                    sonarrReleases = releases,
+                    sonarrReleases = torrentReleases?.let {
+                        sortReleases(it, state.sortOption, state.sortAscending)
+                    },
                     error = (result as? ApiResult.Error)?.message,
                 )
             }
@@ -101,5 +102,41 @@ class SearchSeriesReleaseViewModel(
                 }
             }
         }
+    }
+
+    fun onSortSelected(option: ReleaseSortOption) {
+        _uiState.update { state ->
+            val ascending = if (state.sortOption == option) {
+                !state.sortAscending
+            } else {
+                option.defaultAscending
+            }
+            state.copy(
+                sortOption = option,
+                sortAscending = ascending,
+                sonarrReleases = state.sonarrReleases?.let { sortReleases(it, option, ascending) },
+            )
+        }
+    }
+
+    private fun sortReleases(
+        releases: List<SonarrRelease>,
+        option: ReleaseSortOption,
+        ascending: Boolean,
+    ): List<SonarrRelease> {
+        val primary: Comparator<SonarrRelease> = when (option) {
+            ReleaseSortOption.APPROVED -> compareBy { it.approved }
+            ReleaseSortOption.SEEDERS -> compareBy { it.seeders }
+            ReleaseSortOption.SIZE -> compareBy { it.size }
+            ReleaseSortOption.QUALITY -> compareBy<SonarrRelease> { it.quality.quality.resolution }
+                .thenBy { it.qualityWeight }
+
+            ReleaseSortOption.INDEXER -> compareBy { it.indexer.lowercase() }
+            ReleaseSortOption.AGE -> compareBy { it.ageMinutes }
+        }
+        val ordered = if (ascending) primary else primary.reversed()
+        return releases.sortedWith(
+            ordered.thenBy { it.size }.thenBy { it.indexer.lowercase() }
+        )
     }
 }
