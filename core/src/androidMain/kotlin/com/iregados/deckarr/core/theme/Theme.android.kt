@@ -22,7 +22,8 @@ actual fun DeckarrTheme(
     content: @Composable (() -> Unit)
 ) {
     val preferences: PreferencesRepository = koinInject()
-    val theme by preferences.getTheme().collectAsStateWithLifecycle(ThemeOption.System)
+    val theme by preferences.getTheme()
+        .collectAsStateWithLifecycle(ThemeOption.System)
 
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
@@ -50,7 +51,8 @@ actual fun DeckarrTheme(
 actual val ColorScheme.successGreen: Color
     @Composable get() {
         val preferences: PreferencesRepository = koinInject()
-        val theme by preferences.getTheme().collectAsStateWithLifecycle(ThemeOption.System)
+        val theme by preferences.getTheme()
+            .collectAsStateWithLifecycle(ThemeOption.System)
 
         return when (theme) {
             ThemeOption.Light -> successGreenLight
@@ -61,7 +63,8 @@ actual val ColorScheme.successGreen: Color
 actual val ColorScheme.warningYellow: Color
     @Composable get() {
         val preferences: PreferencesRepository = koinInject()
-        val theme by preferences.getTheme().collectAsStateWithLifecycle(ThemeOption.System)
+        val theme by preferences.getTheme()
+            .collectAsStateWithLifecycle(ThemeOption.System)
 
         return when (theme) {
             ThemeOption.Light -> warningYellowLight

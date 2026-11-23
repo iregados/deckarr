@@ -1,0 +1,137 @@
+package com.iregados.deckarr.api.radarr
+
+import co.touchlab.kermit.Logger
+import co.touchlab.kermit.NoTagFormatter
+import co.touchlab.kermit.loggerConfigInit
+import co.touchlab.kermit.platformLogWriter
+import com.iregados.deckarr.api.common.ApiResult
+import com.iregados.deckarr.api.common.util.HttpClientFactory
+import com.iregados.deckarr.api.common.util.toApiError
+import com.iregados.deckarr.api.radarr.dto.RadarrApiConfig
+import com.iregados.deckarr.api.radarr.dto.RadarrImage
+import com.iregados.deckarr.api.radarr.serializers.ImageUrlSerializer
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.URLProtocol
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlin.coroutines.cancellation.CancellationException
+
+class RadarrApi(
+    private var protocol: URLProtocol,
+    private var host: String,
+    private var apiKey: String,
+    private var basePath: String
+) : AutoCloseable {
+    private val log = Logger(
+        config = loggerConfigInit(
+            platformLogWriter(NoTagFormatter)
+        ),
+        tag = "com.iregados.deckarr.api.radarr.RadarrApi"
+    )
+    private var client = createClient(protocol, host, apiKey)
+    private val _configFlow = MutableStateFlow<RadarrApiConfig?>(null)
+    val configFlow: Flow<RadarrApiConfig> = _configFlow.filterNotNull()
+
+    override fun close() {
+        client.close()
+    }
+
+    fun configure(
+        protocol: URLProtocol,
+        host: String,
+        apiKey: String,
+        basePath: String
+    ) {
+        this.protocol = protocol
+        this.host = host
+        this.apiKey = apiKey
+        this.basePath = basePath
+
+        val oldClient = client
+        client = createClient(protocol, host, apiKey)
+        oldClient.close()
+        
+        _configFlow.value = RadarrApiConfig(protocol, host, apiKey)
+    }
+
+    private fun createClient(
+        protocol: URLProtocol,
+        host: String,
+        apiKey: String,
+    ): HttpClient {
+        return HttpClientFactory.create(
+            json = Json {
+                isLenient = true
+                ignoreUnknownKeys = true
+                explicitNulls = false
+                serializersModule = SerializersModule {
+                    contextual(
+                        RadarrImage::class,
+                        ImageUrlSerializer("${protocol.name}://${host.substringBefore("/")}$basePath")
+                    )
+                }
+            }
+        ) {
+            defaultRequest {
+                url {
+                    this.protocol = protocol
+                    this.host = host
+                }
+                header("Accept", "application/json")
+                header("X-Api-Key", apiKey)
+            }
+        }
+    }
+
+    internal suspend inline fun <reified T> apiGet(path: String): ApiResult<T> {
+        try {
+            val response = client.get("$basePath$path")
+            return ApiResult.Success(response.body())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("apiGet $path error: ${e.message ?: "Unknown error"}")
+            return ApiResult.Error(e.toApiError())
+        }
+    }
+
+    internal suspend inline fun apiDelete(path: String): ApiResult<Boolean> {
+        try {
+            client.delete("$basePath$path")
+            return ApiResult.Success(true)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("apiGet $path error: ${e.message ?: "Unknown error"}")
+            return ApiResult.Error(e.toApiError())
+        }
+    }
+
+    internal suspend inline fun <reified Req, reified Res> apiPost(
+        path: String,
+        body: Req
+    ): ApiResult<Res> {
+        try {
+            val response = client.post("$basePath$path") {
+                header("Content-Type", "application/json")
+                setBody(body)
+            }
+            return ApiResult.Success(response.body())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("apiGet $path error: ${e.message ?: "Unknown error"}")
+            return ApiResult.Error(e.toApiError())
+        }
+    }
+}

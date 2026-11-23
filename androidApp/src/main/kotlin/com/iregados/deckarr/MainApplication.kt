@@ -4,6 +4,7 @@ import android.app.Application
 import com.iregados.deckarr.core.di.apiModule
 import com.iregados.deckarr.core.di.repositoryModule
 import com.iregados.deckarr.feature.downloads.di.downloadsModule
+import com.iregados.deckarr.feature.home.di.homeModule
 import com.iregados.deckarr.feature.movies.di.moviesModule
 import com.iregados.deckarr.feature.navigation.di.navigationModule
 import com.iregados.deckarr.feature.search.di.searchModule
@@ -25,6 +26,7 @@ class MainApplication : Application() {
             modules(
                 apiModule,
                 repositoryModule,
+                homeModule,
                 downloadsModule,
                 moviesModule,
                 navigationModule,

@@ -1,6 +1,6 @@
 package com.iregados.deckarr.feature.movies.search_movie_release
 
-import com.iregados.api.radarr.dto.RadarrRelease
+import com.iregados.deckarr.api.radarr.dto.RadarrRelease
 
 data class SearchMovieReleaseState(
     val isLoading: Boolean = true,

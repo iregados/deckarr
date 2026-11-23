@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class DataStoreDao() {
-    private var dataStore: DataStore<Preferences> = createDataStore()
+    private var dataStore: DataStore<Preferences> =
+        createDataStore()
 
     suspend fun saveString(key: String, data: String) {
         val prefKey = stringPreferencesKey(key)

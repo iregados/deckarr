@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
-import com.iregados.api.sonarr.dto.Episode
 import com.iregados.deckarr.core.theme.successGreen
 import com.iregados.deckarr.core.theme.warningYellow
 import com.iregados.deckarr.core.util.extension.hasDatePassed
@@ -43,7 +42,7 @@ import com.iregados.deckarr.feature.series.search_series_release.navigation.keys
 
 @Composable
 fun EpisodeBySeasonList(
-    episodes: List<Episode>,
+    episodes: List<com.iregados.deckarr.api.sonarr.dto.Episode>,
     navigateMainTo: (NavKey) -> Unit,
 ) {
     // Group episodes by season number

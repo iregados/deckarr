@@ -18,13 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
-import com.iregados.api.sonarr.dto.Series
-import com.iregados.deckarr.core.presentation.components.SeriesCard
+import com.iregados.deckarr.core.components.SeriesCard
 import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
 
 @Composable
 fun SeriesList(
-    passedSeries: List<Series>,
+    passedSeries: List<com.iregados.deckarr.api.sonarr.dto.Series>,
     title: String,
     popMainBackStack: () -> Unit,
     navigateMainTo: (NavKey) -> Unit,

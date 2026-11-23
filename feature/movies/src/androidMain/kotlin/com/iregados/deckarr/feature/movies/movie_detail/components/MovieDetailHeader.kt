@@ -23,9 +23,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.iregados.api.common.dto.CoverType
-import com.iregados.api.radarr.dto.Movie
-import com.iregados.deckarr.core.presentation.components.CustomAsyncImage
+import com.iregados.deckarr.api.common.dto.CoverType
+import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.core.components.CustomAsyncImage
 
 @Composable
 fun MovieDetailHeader(

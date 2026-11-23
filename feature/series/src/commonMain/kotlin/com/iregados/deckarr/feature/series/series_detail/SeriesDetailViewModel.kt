@@ -2,7 +2,8 @@ package com.iregados.deckarr.feature.series.series_detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.iregados.api.sonarr.dto.Series
+import com.iregados.deckarr.api.common.ApiResult
+import com.iregados.deckarr.api.sonarr.dto.Series
 import com.iregados.deckarr.core.domain.PreferencesRepository
 import com.iregados.deckarr.core.domain.SonarrRepository
 import com.iregados.deckarr.core.util.dto.Notification
@@ -11,12 +12,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class SeriesDetailViewModel(
     private val sonarrRepository: SonarrRepository,
@@ -32,7 +34,7 @@ class SeriesDetailViewModel(
             _uiState.value
         )
     private val _notificationFlow = MutableSharedFlow<Notification>(replay = 0)
-    val notificationFlow: SharedFlow<Notification> = _notificationFlow
+    val notificationFlow = _notificationFlow.asSharedFlow()
 
     init {
         loadData()
@@ -49,21 +51,30 @@ class SeriesDetailViewModel(
             val qualityProfilesDeferred = async { sonarrRepository.getQualityProfiles() }
             val rootFoldersDeferred = async { sonarrRepository.getRootFolders() }
             val seriesDetailDeferred = async {
-                passedSeries.id?.let { sonarrId ->
+                val sonarrId = passedSeries.id
+                if (sonarrId != null) {
                     sonarrRepository.getSeriesBySonarrId(sonarrId)
-                } ?: run {
-                    sonarrRepository.getSeriesByTvdbId(passedSeries.tvdbId)?.first()
+                } else {
+                    when (val lookup = sonarrRepository.getSeriesByTvdbId(passedSeries.tvdbId)) {
+                        is ApiResult.Success -> lookup.data.firstOrNull()?.let {
+                            ApiResult.Success(it)
+                        } ?: ApiResult.Error("Series not found")
+
+                        is ApiResult.Error -> lookup
+                    }
                 }
             }
-
-            val episodes = passedSeries.id?.let { sonarrId ->
-                val episodesDeferred = async { sonarrRepository.getEpisodesBySonarrId(sonarrId) }
-                episodesDeferred.await()
+            val episodesDeferred = passedSeries.id?.let { sonarrId ->
+                async { sonarrRepository.getEpisodesBySonarrId(sonarrId) }
             }
 
-            val qualityProfiles = qualityProfilesDeferred.await()
-            val seriesDetail = seriesDetailDeferred.await()
-            val rootFolders = rootFoldersDeferred.await()
+            val qualityProfilesResult = qualityProfilesDeferred.await()
+            val seriesDetailResult = seriesDetailDeferred.await()
+            val rootFoldersResult = rootFoldersDeferred.await()
+            val episodesResult = episodesDeferred?.await()
+
+            val qualityProfiles = qualityProfilesResult.getOrNull()
+            val rootFolders = rootFoldersResult.getOrNull()
 
             val selectedQualityProfileId =
                 preferencesRepository.getSonarrQualityProfileId().firstOrNull()
@@ -72,28 +83,56 @@ class SeriesDetailViewModel(
                 preferencesRepository.getSonarrRootFolderPath().firstOrNull()
                     ?: rootFolders?.first()?.path
 
-
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    series = seriesDetail,
-                    episodes = episodes,
+                    series = seriesDetailResult.getOrNull(),
+                    episodes = episodesResult?.getOrNull(),
                     sonarrQualityProfiles = qualityProfiles,
                     sonarrRootFolders = rootFolders,
                     selectedQualityProfileId = selectedQualityProfileId,
                     selectedRootFolderPath = selectedRootFolderPath
                 )
             }
+
+            val error = (seriesDetailResult as? ApiResult.Error)
+                ?: (episodesResult as? ApiResult.Error)
+                ?: (qualityProfilesResult as? ApiResult.Error)
+                ?: (rootFoldersResult as? ApiResult.Error)
+
+            if (error != null) {
+                _notificationFlow.emitError("Error loading series details: ${error.message}")
+            }
         }
     }
 
-    fun addSeries(
+    fun onEvent(event: SeriesDetailEvent) {
+        when (event) {
+            is SeriesDetailEvent.AddSeries -> addSeries(
+                qualityProfileId = event.qualityProfileId,
+                rootFolderPath = event.rootFolderPath,
+                shouldMonitor = event.shouldMonitor,
+            )
+
+            is SeriesDetailEvent.RemoveSeries -> removeSeries(
+                addToExclusionList = event.addToExclusionList,
+                deleteFiles = event.deleteFiles,
+            )
+        }
+    }
+
+    private fun addSeries(
         qualityProfileId: Long,
         rootFolderPath: String,
         shouldMonitor: Boolean,
-        afterAddSeries: (series: Series?) -> Unit = {}
     ) {
         viewModelScope.launch {
+            val series = _uiState.value.series
+            if (series == null) {
+                _notificationFlow.emitError("Error adding series: series is not loaded")
+                return@launch
+            }
+
             preferencesRepository.setSonarrRootFolderPath(rootFolderPath)
             preferencesRepository.setSonarrQualityProfileId(qualityProfileId)
 
@@ -103,78 +142,129 @@ class SeriesDetailViewModel(
                 )
             }
 
-            val newSeries = sonarrRepository.addSeries(
-                series = _uiState.value.series!!,
-                qualityProfileId = qualityProfileId,
-                rootFolderPath = rootFolderPath,
-                shouldMonitor = shouldMonitor
-            )
-            if (newSeries != null) {
-                delay(500)
-                val episodes = sonarrRepository.getEpisodesBySonarrId(newSeries.id!!)
-                _uiState.update {
-                    it.copy(
-                        series = newSeries,
-                        isAdding = false,
-                        episodes = episodes,
-                    )
+            when (
+                val result = sonarrRepository.addSeries(
+                    series = series,
+                    qualityProfileId = qualityProfileId,
+                    rootFolderPath = rootFolderPath,
+                    shouldMonitor = shouldMonitor
+                )
+            ) {
+                is ApiResult.Success -> {
+                    val newSeries = result.data
+                    delay(500.milliseconds)
+                    val episodesResult = newSeries.id
+                        ?.let { sonarrRepository.getEpisodesBySonarrId(it) }
+
+                    _uiState.update {
+                        it.copy(
+                            series = newSeries,
+                            isAdding = false,
+                            episodes = episodesResult?.getOrNull() ?: it.episodes,
+                        )
+                    }
+
+                    val episodesError = episodesResult as? ApiResult.Error
+                    if (episodesError != null) {
+                        _notificationFlow.emitError(
+                            "Series was added, but its episodes could not be loaded: " +
+                                    episodesError.message
+                        )
+                    }
                 }
-                afterAddSeries(newSeries)
-            } else {
-                _uiState.update {
-                    it.copy(
-                        isAdding = false,
-                    )
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isAdding = false,
+                        )
+                    }
+                    _notificationFlow.emitError("Error adding series: ${result.message}")
                 }
-                _notificationFlow.emitError("Failed to add series")
             }
         }
     }
 
-    fun removeSeries(
+    private fun removeSeries(
         addToExclusionList: Boolean,
         deleteFiles: Boolean,
-        afterRemoveSeries: (seriesId: Long) -> Unit = {}
     ) {
         viewModelScope.launch {
+            val oldId = _uiState.value.series?.id
+            if (oldId == null) {
+                _notificationFlow.emitError("Error removing series: series is not loaded")
+                return@launch
+            }
+
             _uiState.update {
                 it.copy(
                     isRemoving = true,
                 )
             }
 
-            val oldId = _uiState.value.series!!.id!!
-            val removed = sonarrRepository.removeSeriesById(
-                seriesId = oldId,
-                deleteFiles = deleteFiles,
-                addImportExclusion = addToExclusionList
-            )
-            if (removed == true) {
-                val seriesDetail = sonarrRepository.getSeriesByTvdbId(passedSeries.tvdbId)
-                if (!seriesDetail.isNullOrEmpty()) {
-                    _uiState.update {
-                        it.copy(
-                            isRemoving = false,
-                            series = seriesDetail.first(),
-                            episodes = null
-                        )
-                    }
-                } else {
+            when (
+                val removeResult = sonarrRepository.removeSeriesById(
+                    seriesId = oldId,
+                    deleteFiles = deleteFiles,
+                    addImportExclusion = addToExclusionList
+                )
+            ) {
+                is ApiResult.Error -> {
                     _uiState.update {
                         it.copy(
                             isRemoving = false,
                         )
                     }
-                    _notificationFlow.emitError("Error getting new detail for series, but series was removed")
+                    _notificationFlow.emitError("Error removing series: ${removeResult.message}")
+                    return@launch
                 }
-                afterRemoveSeries(oldId)
-            } else {
-                _uiState.update {
-                    it.copy(
-                        isRemoving = false,
+
+                is ApiResult.Success -> if (!removeResult.data) {
+                    _uiState.update {
+                        it.copy(
+                            isRemoving = false,
+                        )
+                    }
+                    _notificationFlow.emitError("Error removing series")
+                    return@launch
+                }
+            }
+
+            when (val seriesDetailResult =
+                sonarrRepository.getSeriesByTvdbId(passedSeries.tvdbId)) {
+                is ApiResult.Success -> {
+                    val seriesDetail = seriesDetailResult.data.firstOrNull()
+                    if (seriesDetail != null) {
+                        _uiState.update {
+                            it.copy(
+                                isRemoving = false,
+                                series = seriesDetail,
+                                episodes = null
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isRemoving = false,
+                            )
+                        }
+                        _notificationFlow.emitError(
+                            "Error getting new detail for series, but series was removed"
+                        )
+                    }
+                }
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRemoving = false,
+                        )
+                    }
+                    _notificationFlow.emitError(
+                        "Series was removed, but its new details could not be loaded: " +
+                                seriesDetailResult.message
                     )
                 }
-                _notificationFlow.emitError("Error removing series")
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.iregados.deckarr.feature.settings.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -29,8 +28,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.iregados.deckarr.core.components.SmartSnackBar
 import com.iregados.deckarr.core.domain.util.TorrentClientOption
-import com.iregados.deckarr.core.presentation.components.rememberErrorFlowHandler
 import com.iregados.deckarr.core.util.dto.RadioOption
 import com.iregados.deckarr.feature.settings.SettingsEvent
 import com.iregados.deckarr.feature.settings.SettingsViewModel
@@ -70,9 +69,6 @@ fun DownloadsConfigurationComponent(
             uiState.downloadsSettingsState.password
         )
     }
-    var errorMessage by rememberErrorFlowHandler(
-        errorFlow = settingsViewModel.errorFlow
-    )
 
     Box(
         modifier = Modifier
@@ -216,23 +212,9 @@ fun DownloadsConfigurationComponent(
             }
         }
 
-        if (errorMessage != null) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = .5f))
-                    .clickable {
-                        errorMessage = null
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(8.dp),
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
+        SmartSnackBar(
+            settingsViewModel.notificationFlow,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }

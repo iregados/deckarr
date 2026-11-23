@@ -23,14 +23,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.iregados.api.common.dto.CoverType
-import com.iregados.api.sonarr.dto.Series
-import com.iregados.deckarr.core.presentation.components.CustomAsyncImage
+import com.iregados.deckarr.api.common.dto.CoverType
+import com.iregados.deckarr.core.components.CustomAsyncImage
 
 @Composable
 fun SeriesDetailHeader(
     modifier: Modifier = Modifier,
-    series: Series,
+    series: com.iregados.deckarr.api.sonarr.dto.Series,
     onBackClick: () -> Unit,
     paddingValues: PaddingValues,
 ) {

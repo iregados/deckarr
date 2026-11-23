@@ -27,12 +27,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.iregados.deckarr.feature.movies.movie_detail.MovieDetailState
 
 @Composable
 fun AddMovieDialog(
     showDialog: Boolean,
-    uiState: MovieDetailState,
+    uiState: com.iregados.deckarr.feature.movies.movie_detail.MovieDetailState,
     onAddMovie: (qualityProfileId: Long, rootFolderPath: String, shouldMonitor: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {

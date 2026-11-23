@@ -2,13 +2,12 @@ package com.iregados.deckarr.feature.series.search_series_release
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.iregados.api.sonarr.dto.SonarrRelease
+import com.iregados.deckarr.api.common.ApiResult
 import com.iregados.deckarr.core.domain.SonarrRepository
 import com.iregados.deckarr.core.util.dto.Notification
 import com.iregados.deckarr.feature.series.search_series_release.navigation.keys.util.SearchSeriesReleaseParams
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
@@ -40,10 +39,11 @@ class SearchSeriesReleaseViewModel(
             _uiState.update {
                 it.copy(
                     isLoading = true,
+                    error = null,
                 )
             }
 
-            val releases = when (params) {
+            val result = when (params) {
                 is SearchSeriesReleaseParams.ByEpisode -> {
                     sonarrRepository.getReleases(params.episodeId)
                 }
@@ -55,6 +55,7 @@ class SearchSeriesReleaseViewModel(
                     )
                 }
             }
+            val releases = result.getOrNull()
                 ?.filter { it.protocol == "torrent" }
                 ?.sortedBy { it.indexer }
                 ?.sortedBy { it.size }
@@ -64,13 +65,15 @@ class SearchSeriesReleaseViewModel(
                 it.copy(
                     isLoading = false,
                     sonarrReleases = releases,
+                    error = (result as? ApiResult.Error)?.message,
                 )
             }
         }
     }
 
+
     fun addRelease(
-        sonarrRelease: SonarrRelease,
+        sonarrRelease: com.iregados.deckarr.api.sonarr.dto.SonarrRelease,
     ) {
         viewModelScope.launch {
             _uiState.update {
@@ -81,7 +84,7 @@ class SearchSeriesReleaseViewModel(
 
             sonarrRepository.addRelease(
                 sonarrRelease = sonarrRelease
-            )?.let {
+            ).getOrNull()?.let {
                 _uiState.update {
                     it.copy(
                         grabbingReleasesIds = it.grabbingReleasesIds - sonarrRelease.guid,

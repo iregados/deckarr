@@ -1,7 +1,7 @@
 package com.iregados.deckarr.feature.downloads
 
-import com.iregados.api.common.interfaces.Torrent
-import com.iregados.api.common.interfaces.TorrentServerStats
+import com.iregados.deckarr.api.common.interfaces.Torrent
+import com.iregados.deckarr.api.common.interfaces.TorrentServerStats
 
 data class DownloadsState(
     val isLoading: Boolean = true,

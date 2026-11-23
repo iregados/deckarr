@@ -18,8 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
-import com.iregados.api.radarr.dto.Movie
-import com.iregados.deckarr.core.presentation.components.MovieCard
+import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.core.components.MovieCard
 import com.iregados.deckarr.feature.movies.movie_detail.navigation.keys.MovieDetailKey
 
 @Composable

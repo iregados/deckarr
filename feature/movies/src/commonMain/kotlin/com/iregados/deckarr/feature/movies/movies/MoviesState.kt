@@ -1,7 +1,7 @@
 package com.iregados.deckarr.feature.movies.movies
 
-import com.iregados.api.radarr.dto.Movie
-import com.iregados.api.radarr.dto.RadarrRootFolder
+import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.api.radarr.dto.RadarrRootFolder
 
 data class MoviesState(
     val isLoading: Boolean = true,
@@ -16,3 +16,13 @@ data class MoviesState(
     val rootFolders: List<RadarrRootFolder>? = null
 )
 
+fun MoviesState.withMovies(movies: List<Movie>?): MoviesState =
+    copy(
+        movies = movies,
+        missingFileMovies = movies
+            ?.filter { it.hasFile != true }
+            ?.sortedByDescending { it.added },
+        recentlyAddedMovies = movies
+            ?.filter { it.hasFile == true }
+            ?.sortedByDescending { it.added },
+    )

@@ -22,16 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
-import com.iregados.deckarr.core.presentation.components.MovieCard
-import com.iregados.deckarr.core.presentation.components.MovieListHeader
+import com.iregados.deckarr.core.components.MovieCard
+import com.iregados.deckarr.core.components.MovieListHeader
+import com.iregados.deckarr.feature.movies.keys.MoviesListKey
 import com.iregados.deckarr.feature.movies.movie_detail.navigation.keys.MovieDetailKey
-import com.iregados.deckarr.feature.movies.movies_list.navigation.keys.MoviesListKey
+import org.koin.compose.viewmodel.koinViewModel
 
 
 @Composable
 fun MoviesScreen(
-    moviesViewModel: MoviesViewModel,
-    navigateMainTo: (NavKey) -> Unit
+    navigateMainTo: (NavKey) -> Unit,
+    moviesViewModel: MoviesViewModel = koinViewModel(),
 ) {
     val uiState by moviesViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -75,7 +76,7 @@ fun MoviesScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Error while loading movies",
+                text = uiState.error ?: "Error while loading movies",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error
             )

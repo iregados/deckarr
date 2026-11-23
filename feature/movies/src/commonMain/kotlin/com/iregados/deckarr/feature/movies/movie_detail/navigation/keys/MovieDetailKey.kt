@@ -1,7 +1,7 @@
 package com.iregados.deckarr.feature.movies.movie_detail.navigation.keys
 
 import androidx.navigation3.runtime.NavKey
-import com.iregados.api.radarr.dto.Movie
+import com.iregados.deckarr.api.radarr.dto.Movie
 import kotlinx.serialization.Serializable
 
 @Serializable

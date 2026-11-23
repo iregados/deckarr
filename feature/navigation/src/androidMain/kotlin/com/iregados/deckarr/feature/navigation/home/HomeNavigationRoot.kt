@@ -1,6 +1,5 @@
 package com.iregados.deckarr.feature.navigation.home
 
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,68 +14,50 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.ui.NavDisplay
-import com.iregados.deckarr.core.presentation.components.SmartSnackBar
-import com.iregados.deckarr.feature.downloads.DownloadsViewModel
-import com.iregados.deckarr.feature.downloads.navigation.downloadsEntry
-import com.iregados.deckarr.feature.downloads.navigation.keys.DownloadsKey
-import com.iregados.deckarr.feature.home.navigation.homeEntry
-import com.iregados.deckarr.feature.movies.movies.MoviesViewModel
-import com.iregados.deckarr.feature.movies.movies.navigation.moviesEntry
-import com.iregados.deckarr.feature.navigation.NavigationViewModel
-import com.iregados.deckarr.feature.navigation.keys.HomeKey
+import androidx.navigation3.runtime.NavKey
+import com.iregados.deckarr.core.components.SmartSnackBar
+import com.iregados.deckarr.core.util.dto.Notification
+import com.iregados.deckarr.feature.navigation.BottomNavTab
 import com.iregados.deckarr.feature.search.navigation.keys.SearchKey
-import com.iregados.deckarr.feature.series.series.SeriesViewModel
-import com.iregados.deckarr.feature.series.series.navigation.seriesEntry
 import com.iregados.deckarr.feature.settings.navigation.keys.SettingsKey
+import kotlinx.coroutines.flow.SharedFlow
 
 @Composable
 fun HomeNavigationRoot(
-    navViewModel: NavigationViewModel,
-    moviesViewModel: MoviesViewModel,
-    seriesViewModel: SeriesViewModel,
-    downloadsViewModel: DownloadsViewModel
+    activeTab: BottomNavTab,
+    showSnackbar: Boolean,
+    onNavigate: (NavKey) -> Unit,
+    notificationFlow: SharedFlow<Notification>,
+    onRefresh: () -> Unit,
+    onTabSelect: (BottomNavTab) -> Unit,
+    content: @Composable () -> Unit,
 ) {
-    val bottomBackStack by navViewModel.bottomBackStack.collectAsStateWithLifecycle()
-
-    val activity = LocalActivity.current
-
     Scaffold(
-        snackbarHost = { SmartSnackBar(downloadsViewModel.notificationFlow) },
+        modifier = Modifier.fillMaxSize(),
+        snackbarHost = {
+            if (showSnackbar) {
+                SmartSnackBar(notificationFlow)
+            }
+        },
         bottomBar = {
             NavigationBar {
-                homeBottomNavItems.forEach {
+                BottomNavTab.entries.forEach { tab ->
                     NavigationBarItem(
-                        icon = { Icon(it.icon, contentDescription = it.label) },
-                        label = { Text(it.label) },
-                        selected = bottomBackStack.last() == it.route,
-                        onClick = { navViewModel.navigateBottomTo(it.route) }
+                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        label = { Text(tab.label) },
+                        selected = activeTab == tab,
+                        onClick = { onTabSelect(tab) }
                     )
                 }
             }
         },
         topBar = {
             TopAppBar(
-                title = {
-                    homeBottomNavItems.first { it.route == bottomBackStack.last() }.label.let {
-                        Text(
-                            it
-                        )
-                    }
-                },
+                title = { Text(activeTab.label) },
                 actions = {
-                    if (bottomBackStack.last() != DownloadsKey) {
-                        IconButton(
-                            onClick = {
-                                navViewModel.navigateMainTo(SearchKey)
-                            }
-                        ) {
+                    if (activeTab != BottomNavTab.DOWNLOADS) {
+                        IconButton(onClick = { onNavigate(SearchKey) }) {
                             Icon(
                                 Icons.Default.Search,
                                 contentDescription = "Search"
@@ -84,11 +65,7 @@ fun HomeNavigationRoot(
                         }
                     }
 
-                    IconButton(
-                        onClick = {
-                            navViewModel.navigateMainTo(SettingsKey)
-                        }
-                    ) {
+                    IconButton(onClick = { onNavigate(SettingsKey) }) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = "Settings"
@@ -103,47 +80,9 @@ fun HomeNavigationRoot(
                 .fillMaxSize()
                 .padding(paddingValues),
             isRefreshing = false,
-            onRefresh = {
-                downloadsViewModel.loadData()
-                moviesViewModel.loadData()
-                seriesViewModel.loadData()
-            }
+            onRefresh = onRefresh
         ) {
-            NavDisplay(
-                modifier = Modifier
-                    .fillMaxSize(),
-                backStack = bottomBackStack,
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
-                onBack = {
-                    if (bottomBackStack.last() == HomeKey) {
-                        activity?.finish()
-                    } else {
-                        navViewModel.popBottomBackStack()
-                    }
-                },
-                entryProvider = entryProvider {
-                    homeEntry(
-                        moviesViewModel = moviesViewModel,
-                        seriesViewModel = seriesViewModel,
-                        downloadViewModel = downloadsViewModel,
-                        navigateMainTo = { navViewModel.navigateMainTo(it) },
-                    )
-                    moviesEntry(
-                        moviesViewModel = moviesViewModel,
-                        navigateMainTo = { navViewModel.navigateMainTo(it) }
-                    )
-                    seriesEntry(
-                        seriesViewModel = seriesViewModel,
-                        navigateMainTo = { navViewModel.navigateMainTo(it) }
-                    )
-                    downloadsEntry(
-                        downloadsViewModel = downloadsViewModel,
-                    )
-                }
-            )
+            content()
         }
     }
 }

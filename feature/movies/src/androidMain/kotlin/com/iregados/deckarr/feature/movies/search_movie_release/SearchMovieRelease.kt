@@ -33,7 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.iregados.api.radarr.dto.Movie
+import com.iregados.deckarr.api.radarr.dto.Movie
 import com.iregados.deckarr.core.util.extension.toFormatedSize
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -89,7 +89,7 @@ fun SearchMovieRelease(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Error while searching releases",
+                    text = uiState.error ?: "Error while searching releases",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )

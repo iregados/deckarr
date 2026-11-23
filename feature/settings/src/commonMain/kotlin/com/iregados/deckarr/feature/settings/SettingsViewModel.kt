@@ -2,10 +2,13 @@ package com.iregados.deckarr.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.iregados.deckarr.api.common.ApiResult
 import com.iregados.deckarr.core.domain.DownloadsRepository
 import com.iregados.deckarr.core.domain.PreferencesRepository
 import com.iregados.deckarr.core.domain.RadarrRepository
 import com.iregados.deckarr.core.domain.SonarrRepository
+import com.iregados.deckarr.core.util.dto.Notification
+import com.iregados.deckarr.core.util.extension.emitError
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,11 +55,11 @@ class SettingsViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = _uiState.value
     )
-    private val _errorFlow = MutableSharedFlow<String>(
+    private val _notificationFlow = MutableSharedFlow<Notification>(
         replay = 0,
         extraBufferCapacity = 1
     )
-    val errorFlow = _errorFlow.asSharedFlow()
+    val notificationFlow = _notificationFlow.asSharedFlow()
 
     private var job: Job? = null
 
@@ -73,20 +76,20 @@ class SettingsViewModel(
                             )
                         )
                     }
-                    val result = radarrRepository.systemStatus(
+                    val response = radarrRepository.systemStatus(
                         connectionAddress = event.connectionAddress,
                         apiKey = event.apiKey
                     )
 
-                    if (result == null) {
-                        _errorFlow.emit("Error while connecting to Radarr")
+                    if (response is ApiResult.Error) {
+                        _notificationFlow.emitError("Error while connecting to Radarr: ${response.message}")
                     }
 
                     _uiState.update {
                         it.copy(
                             radarrSettingsState = it.radarrSettingsState.copy(
                                 isTesting = false,
-                                isEnabled = result != null
+                                isEnabled = response is ApiResult.Success
                             )
                         )
                     }
@@ -133,23 +136,24 @@ class SettingsViewModel(
                             )
                         )
                     }
-                    val result = sonarrRepository.testConnection(
+                    val response = sonarrRepository.testConnection(
                         connectionAddress = event.connectionAddress,
                         apiKey = event.apiKey
                     )
 
-                    if (result == null) {
-                        _errorFlow.emit("Error while connecting to Sonarr")
+                    if (response is ApiResult.Error) {
+                        _notificationFlow.emitError("Error while connecting to Sonarr: ${response.message}")
                     }
 
                     _uiState.update {
                         it.copy(
                             sonarrSettingsState = it.sonarrSettingsState.copy(
                                 isTesting = false,
-                                isEnabled = result != null
+                                isEnabled = response is ApiResult.Success
                             )
                         )
                     }
+
                 }
             }
 
@@ -193,25 +197,26 @@ class SettingsViewModel(
                             )
                         )
                     }
-                    val result = downloadsRepository.testConnection(
+                    val response = downloadsRepository.testConnection(
                         selectedClient = event.selectedClient,
                         connectionAddress = event.connectionAddress,
                         username = event.username,
                         password = event.password
                     )
 
-                    if (result == null) {
-                        _errorFlow.emit("Error while connecting to Torrent Client")
+                    if (response is ApiResult.Error) {
+                        _notificationFlow.emitError("Error while connecting to Torrent Client: ${response.message}")
                     }
 
                     _uiState.update {
                         it.copy(
                             downloadsSettingsState = it.downloadsSettingsState.copy(
                                 isTesting = false,
-                                isEnabled = result != null
+                                isEnabled = response is ApiResult.Success
                             )
                         )
                     }
+
                 }
             }
 

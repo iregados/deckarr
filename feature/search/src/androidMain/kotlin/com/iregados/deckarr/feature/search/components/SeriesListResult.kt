@@ -21,18 +21,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.iregados.api.common.dto.CoverType
-import com.iregados.api.sonarr.dto.Series
-import com.iregados.deckarr.core.presentation.components.CustomAsyncImage
+import com.iregados.deckarr.api.common.dto.CoverType
+import com.iregados.deckarr.core.components.CustomAsyncImage
 import deckarr.feature.search.generated.resources.Res
 import deckarr.feature.search.generated.resources.sonarr
 import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun SeriesListResult(
-    series: List<Series>?,
+    series: List<com.iregados.deckarr.api.sonarr.dto.Series>?,
     needsConfiguration: Boolean,
-    onSelect: (series: Series) -> Unit,
+    onSelect: (series: com.iregados.deckarr.api.sonarr.dto.Series) -> Unit,
+    error: String? = null,
 ) {
     if (needsConfiguration) {
         Box(
@@ -53,7 +53,7 @@ fun SeriesListResult(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Error while searching",
+                text = error ?: "Error while searching",
                 color = MaterialTheme.colorScheme.error
             )
         }
