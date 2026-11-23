@@ -22,29 +22,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation3.runtime.NavKey
-import com.iregados.deckarr.core.presentation.components.MovieCard
-import com.iregados.deckarr.core.presentation.components.MovieListHeader
-import com.iregados.deckarr.feature.downloads.DownloadsViewModel
+import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.core.components.MovieCard
+import com.iregados.deckarr.core.components.MovieListHeader
 import com.iregados.deckarr.feature.home.components.StatsComponent
-import com.iregados.deckarr.feature.movies.movie_detail.navigation.keys.MovieDetailKey
-import com.iregados.deckarr.feature.movies.movies.MoviesViewModel
-import com.iregados.deckarr.feature.movies.movies_list.navigation.keys.MoviesListKey
-import com.iregados.deckarr.feature.series.series.SeriesViewModel
-
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreen(
-    navigateMainTo: (NavKey) -> Unit,
-    moviesViewModel: MoviesViewModel,
-    seriesViewModel: SeriesViewModel,
-    downloadViewModel: DownloadsViewModel
+    onMovieClick: (Movie) -> Unit,
+    onMoviesListClick: (movies: List<Movie>, title: String) -> Unit,
+    homeViewModel: HomeViewModel = koinViewModel(),
 ) {
-    val moviesState by moviesViewModel.uiState.collectAsStateWithLifecycle()
-    val seriesState by seriesViewModel.uiState.collectAsStateWithLifecycle()
-    val downloadsState by downloadViewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val radarr = uiState.radarr
+    val sonarr = uiState.sonarr
+    val downloads = uiState.downloads
 
-    if (moviesState.isLoading || seriesState.isLoading || downloadsState.isLoading) {
+    val isAnyLoading = radarr.isLoading || sonarr.isLoading || downloads.isLoading
+    val hasAnyData = radarr.movies != null || sonarr.series != null || downloads.torrents != null
+
+    if (isAnyLoading && !hasAnyData) {
         Box(
             modifier = Modifier
                 .fillMaxSize(),
@@ -60,9 +58,9 @@ fun HomeScreen(
     }
 
     if (
-        moviesState.needsConfiguration &&
-        seriesState.needsConfiguration &&
-        downloadsState.needsConfiguration
+        radarr.needsConfiguration &&
+        sonarr.needsConfiguration &&
+        downloads.needsConfiguration
     ) {
         Box(
             modifier = Modifier
@@ -79,11 +77,7 @@ fun HomeScreen(
         return
     }
 
-    if (
-        moviesState.movies == null &&
-        seriesState.series == null &&
-        downloadsState.torrents == null
-    ) {
+    if (!isAnyLoading && !hasAnyData) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -106,7 +100,15 @@ fun HomeScreen(
             .padding(horizontal = 16.dp)
             .padding(bottom = 16.dp),
     ) {
-        if (moviesState.needsConfiguration) {
+        if (isAnyLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            )
+        }
+
+        if (radarr.needsConfiguration) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,7 +122,7 @@ fun HomeScreen(
             }
         }
 
-        if (seriesState.needsConfiguration) {
+        if (sonarr.needsConfiguration) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -134,7 +136,7 @@ fun HomeScreen(
             }
         }
 
-        if (downloadsState.needsConfiguration) {
+        if (downloads.needsConfiguration) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,32 +144,30 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Please set up your Transmission server",
+                    text = "Please set up your Torrent server",
                     color = MaterialTheme.colorScheme.error
                 )
             }
         }
 
         StatsComponent(
-            moviesState = moviesState,
-            seriesState = seriesState,
-            downloadsState = downloadsState,
+            radarrState = radarr,
+            sonarrState = sonarr,
+            downloadsState = downloads,
         )
 
-        if (!moviesState.needsConfiguration) {
+        if (!radarr.needsConfiguration) {
             MovieListHeader(
                 title = "Popular movies",
                 onClick = { title ->
-                    navigateMainTo(
-                        MoviesListKey(
-                            movies = moviesState.popularMovies ?: emptyList(),
-                            title = title
-                        )
+                    onMoviesListClick(
+                        radarr.popularMovies ?: emptyList(),
+                        title
                     )
                 }
             )
 
-            moviesState.popularMovies?.let { popularMovies ->
+            radarr.popularMovies?.let { popularMovies ->
                 LazyHorizontalGrid(
                     modifier = Modifier
                         .height(220.dp),
@@ -177,19 +177,14 @@ fun HomeScreen(
                 ) {
                     items(
                         popularMovies.size,
-                        key = { index -> popularMovies[index].tmdbId }) { index ->
+                        key = { index -> popularMovies[index].tmdbId }
+                    ) { index ->
                         MovieCard(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .width(190.dp),
                             movie = popularMovies[index],
-                            onClick = {
-                                navigateMainTo(
-                                    MovieDetailKey(
-                                        popularMovies[index]
-                                    )
-                                )
-                            }
+                            onClick = { onMovieClick(popularMovies[index]) }
                         )
                     }
                 }
@@ -198,16 +193,14 @@ fun HomeScreen(
             MovieListHeader(
                 title = "Trending movies",
                 onClick = { title ->
-                    navigateMainTo(
-                        MoviesListKey(
-                            movies = moviesState.trendingMovies ?: emptyList(),
-                            title = title
-                        )
+                    onMoviesListClick(
+                        radarr.trendingMovies ?: emptyList(),
+                        title
                     )
                 }
             )
 
-            moviesState.trendingMovies?.let { trendingMovies ->
+            radarr.trendingMovies?.let { trendingMovies ->
                 LazyHorizontalGrid(
                     modifier = Modifier
                         .height(220.dp),
@@ -217,19 +210,14 @@ fun HomeScreen(
                 ) {
                     items(
                         trendingMovies.size,
-                        key = { index -> trendingMovies[index].tmdbId }) { index ->
+                        key = { index -> trendingMovies[index].tmdbId }
+                    ) { index ->
                         MovieCard(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .width(190.dp),
                             movie = trendingMovies[index],
-                            onClick = {
-                                navigateMainTo(
-                                    MovieDetailKey(
-                                        trendingMovies[index]
-                                    )
-                                )
-                            }
+                            onClick = { onMovieClick(trendingMovies[index]) }
                         )
                     }
                 }

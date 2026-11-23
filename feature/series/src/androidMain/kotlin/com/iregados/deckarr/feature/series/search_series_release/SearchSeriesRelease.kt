@@ -90,7 +90,7 @@ fun SearchSeriesRelease(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Error while loading releases",
+                    text = uiState.error ?: "Error while loading releases",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )

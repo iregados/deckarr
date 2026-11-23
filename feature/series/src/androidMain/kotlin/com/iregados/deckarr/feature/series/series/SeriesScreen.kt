@@ -22,16 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
-import com.iregados.deckarr.core.presentation.components.SeriesCard
-import com.iregados.deckarr.core.presentation.components.SeriesListHeader
+import com.iregados.deckarr.core.components.SeriesCard
+import com.iregados.deckarr.core.components.SeriesListHeader
 import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
 import com.iregados.deckarr.feature.series.series_list.navigation.keys.SeriesListKey
+import org.koin.compose.viewmodel.koinViewModel
 
 
 @Composable
 fun SeriesScreen(
-    seriesViewModel: SeriesViewModel,
-    navigateMainTo: (NavKey) -> Unit
+    navigateMainTo: (NavKey) -> Unit,
+    seriesViewModel: SeriesViewModel = koinViewModel(),
 ) {
     val uiState by seriesViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -74,7 +75,7 @@ fun SeriesScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Error while loading series",
+                text = uiState.error ?: "Error while loading series",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error
             )

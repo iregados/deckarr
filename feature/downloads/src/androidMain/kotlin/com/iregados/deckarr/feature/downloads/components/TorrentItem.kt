@@ -31,8 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.iregados.api.common.dto.TorrentStatus
-import com.iregados.api.common.interfaces.Torrent
+import com.iregados.deckarr.api.common.dto.TorrentStatus
+import com.iregados.deckarr.api.common.interfaces.Torrent
 import com.iregados.deckarr.core.theme.warningYellow
 import com.iregados.deckarr.core.util.extension.round
 import com.iregados.deckarr.core.util.extension.toEtaString

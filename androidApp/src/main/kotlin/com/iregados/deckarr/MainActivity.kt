@@ -11,20 +11,12 @@ import com.iregados.deckarr.feature.navigation.main.MainNavigationRoot
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val splashScreen = installSplashScreen()
-        var keepSplashScreen = true
-        splashScreen.setKeepOnScreenCondition { keepSplashScreen }
-
+        installSplashScreen()
         enableEdgeToEdge()
 
         setContent {
             DeckarrTheme {
-                MainNavigationRoot(
-                    hideSplashScreen = {
-                        keepSplashScreen = false
-                    }
-                )
+                MainNavigationRoot()
             }
         }
     }

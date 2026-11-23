@@ -2,6 +2,7 @@ package com.iregados.deckarr.feature.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.iregados.deckarr.api.common.ApiResult
 import com.iregados.deckarr.core.domain.RadarrRepository
 import com.iregados.deckarr.core.domain.SonarrRepository
 import kotlinx.coroutines.Job
@@ -65,7 +66,8 @@ class SearchViewModel(
                     _uiState.update {
                         it.copy(
                             movies = null,
-                            series = null
+                            series = null,
+                            error = null
                         )
                     }
                 } else {
@@ -87,7 +89,8 @@ class SearchViewModel(
                     _uiState.update {
                         it.copy(
                             movies = null,
-                            series = null
+                            series = null,
+                            error = null
                         )
                     }
                 } else {
@@ -107,16 +110,23 @@ class SearchViewModel(
         if (_uiState.value.radarrNeedsConfiguration) return
 
         searchJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isLoading = true
-            )
-            val movies = radarrRepository.lookupMovies(query)
-            _uiState.value = _uiState.value.copy(
-                movies = movies,
-                isLoading = false
-            )
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    error = null
+                )
+            }
+            val result = radarrRepository.lookupMovies(query)
+            _uiState.update {
+                it.copy(
+                    movies = result.getOrNull(),
+                    isLoading = false,
+                    error = (result as? ApiResult.Error)?.message
+                )
+            }
         }
     }
+
 
     fun searchSeries(
         query: String
@@ -125,14 +135,20 @@ class SearchViewModel(
         if (_uiState.value.sonarrNeedsConfiguration) return
 
         searchJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isLoading = true
-            )
-            val series = sonarrRepository.lookupSeries(query)
-            _uiState.value = _uiState.value.copy(
-                series = series,
-                isLoading = false
-            )
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    error = null
+                )
+            }
+            val result = sonarrRepository.lookupSeries(query)
+            _uiState.update {
+                it.copy(
+                    series = result.getOrNull(),
+                    isLoading = false,
+                    error = (result as? ApiResult.Error)?.message
+                )
+            }
         }
     }
 }

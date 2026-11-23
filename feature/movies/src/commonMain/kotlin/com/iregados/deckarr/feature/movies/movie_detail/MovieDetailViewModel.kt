@@ -2,7 +2,8 @@ package com.iregados.deckarr.feature.movies.movie_detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.iregados.api.radarr.dto.Movie
+import com.iregados.deckarr.api.common.ApiResult
+import com.iregados.deckarr.api.radarr.dto.Movie
 import com.iregados.deckarr.core.domain.PreferencesRepository
 import com.iregados.deckarr.core.domain.RadarrRepository
 import com.iregados.deckarr.core.util.dto.Notification
@@ -10,7 +11,6 @@ import com.iregados.deckarr.core.util.extension.emitError
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.firstOrNull
@@ -23,7 +23,10 @@ class MovieDetailViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val passedMovie: Movie
 ) : ViewModel() {
-    private val _uiState: MutableStateFlow<MovieDetailState> = MutableStateFlow(MovieDetailState())
+    private val _uiState: MutableStateFlow<MovieDetailState> =
+        MutableStateFlow(
+            MovieDetailState()
+        )
     val uiState = _uiState
         .stateIn(
             viewModelScope,
@@ -49,13 +52,21 @@ class MovieDetailViewModel(
             val qualityProfilesDeferred = async { radarrRepository.getQualityProfiles() }
             val rootFoldersDeferred = async { radarrRepository.getRootFolders() }
             val movieDetailDeferred = async {
-                radarrRepository.getAddedMovieByTmdbId(passedMovie.tmdbId)
-                    ?: radarrRepository.findMovieByTmdbId(passedMovie.tmdbId)
+                val added = radarrRepository.getAddedMovieByTmdbId(passedMovie.tmdbId)
+                if (added is ApiResult.Success) {
+                    added
+                } else {
+                    radarrRepository.findMovieByTmdbId(passedMovie.tmdbId)
+                }
             }
 
-            val rootFolders = rootFoldersDeferred.await()
-            val qualityProfiles = qualityProfilesDeferred.await()
-            val movieDetail = movieDetailDeferred.await()
+            val qualityProfilesResult = qualityProfilesDeferred.await()
+            val rootFoldersResult = rootFoldersDeferred.await()
+            val movieDetailResult = movieDetailDeferred.await()
+
+            val qualityProfiles = qualityProfilesResult.getOrNull()
+            val rootFolders = rootFoldersResult.getOrNull()
+
             val selectedQualityProfileId =
                 preferencesRepository.getRadarrQualityProfileId().firstOrNull()
                     ?: qualityProfiles?.last()?.id
@@ -66,23 +77,51 @@ class MovieDetailViewModel(
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    movie = movieDetail,
+                    movie = movieDetailResult.getOrNull(),
                     radarrQualityProfiles = qualityProfiles,
                     radarrRootFolders = rootFolders,
                     selectedQualityProfileId = selectedQualityProfileId,
                     selectedRootFolderPath = selectedRootFolderPath
                 )
             }
+
+            val error = (movieDetailResult as? ApiResult.Error)
+                ?: (rootFoldersResult as? ApiResult.Error)
+                ?: (qualityProfilesResult as? ApiResult.Error)
+
+            if (error != null) {
+                _notificationFlow.emitError("Error loading movie details: ${error.message}")
+            }
         }
     }
 
-    fun addMovie(
+    fun onEvent(event: MovieDetailEvent) {
+        when (event) {
+            is MovieDetailEvent.AddMovie -> addMovie(
+                qualityProfileId = event.qualityProfileId,
+                rootFolderPath = event.rootFolderPath,
+                shouldMonitor = event.shouldMonitor,
+            )
+
+            is MovieDetailEvent.RemoveMovie -> removeMovie(
+                addToExclusionList = event.addToExclusionList,
+                deleteFiles = event.deleteFiles,
+            )
+        }
+    }
+
+    private fun addMovie(
         qualityProfileId: Long,
         rootFolderPath: String,
         shouldMonitor: Boolean,
-        afterAddMovie: (movie: Movie?) -> Unit = {}
     ) {
         viewModelScope.launch {
+            val movie = _uiState.value.movie
+            if (movie == null) {
+                _notificationFlow.emitError("Error adding movie: movie is not loaded")
+                return@launch
+            }
+
             _uiState.update {
                 it.copy(
                     isAdding = true,
@@ -91,75 +130,84 @@ class MovieDetailViewModel(
             preferencesRepository.setRadarrRootFolderPath(rootFolderPath)
             preferencesRepository.setRadarrQualityProfileId(qualityProfileId)
 
-            val newMovie = radarrRepository.addMovie(
-                movie = _uiState.value.movie!!,
+            val result = radarrRepository.addMovie(
+                movie = movie,
                 qualityProfileId = qualityProfileId,
                 rootFolderPath = rootFolderPath,
                 shouldMonitor = shouldMonitor
             )
 
-            if (newMovie != null) {
-                _uiState.update {
+            when (result) {
+                is ApiResult.Success -> _uiState.update {
                     it.copy(
-                        movie = newMovie,
+                        movie = result.data,
                         isAdding = false,
                     )
                 }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        isAdding = false,
-                    )
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isAdding = false,
+                        )
+                    }
+                    _notificationFlow.emitError("Error adding movie: ${result.message}")
                 }
-                _notificationFlow.emitError("Error adding movie")
             }
-            afterAddMovie(newMovie)
         }
     }
 
-    fun removeMovie(
+    private fun removeMovie(
         addToExclusionList: Boolean,
         deleteFiles: Boolean,
-        afterRemoveMovie: (movieId: Long) -> Unit
     ) {
         viewModelScope.launch {
+            val oldId = _uiState.value.movie?.id
+            if (oldId == null) {
+                _notificationFlow.emitError("Error removing movie: movie is not loaded")
+                return@launch
+            }
+
             _uiState.update {
                 it.copy(
                     isRemoving = true,
                 )
             }
 
-            val oldId = _uiState.value.movie!!.id!!
-            val removed = radarrRepository.removeMovieById(
+            val removeResult = radarrRepository.removeMovieById(
                 movieId = oldId,
                 deleteFiles = deleteFiles,
                 addImportExclusion = addToExclusionList
             )
-            if (removed == true) {
-                val movieDetail = radarrRepository.findMovieByTmdbId(passedMovie.tmdbId)
-                if (movieDetail != null) {
-                    _uiState.update {
-                        it.copy(
-                            isRemoving = false,
-                            movie = movieDetail,
-                        )
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isRemoving = false,
-                        )
-                    }
-                    _notificationFlow.emitError("Error getting new detail for movie, but movie was removed")
-                }
-                afterRemoveMovie(oldId)
-            } else {
+
+            if (removeResult is ApiResult.Error) {
                 _uiState.update {
                     it.copy(
                         isRemoving = false,
                     )
                 }
-                _notificationFlow.emitError("Error removing movie")
+                _notificationFlow.emitError("Error removing movie: ${removeResult.message}")
+                return@launch
+            }
+
+            when (val movieDetail = radarrRepository.findMovieByTmdbId(passedMovie.tmdbId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isRemoving = false,
+                        movie = movieDetail.data,
+                    )
+                }
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRemoving = false,
+                        )
+                    }
+                    _notificationFlow.emitError(
+                        "Movie was removed, but its new details could not be loaded: ${movieDetail.message}"
+                    )
+                }
             }
         }
     }

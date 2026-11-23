@@ -1,6 +1,6 @@
 package com.iregados.deckarr.feature.downloads
 
-import com.iregados.api.common.interfaces.Torrent
+import com.iregados.deckarr.api.common.interfaces.Torrent
 
 sealed interface DownloadsTabsItems {
     val title: String

@@ -32,14 +32,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.iregados.deckarr.core.components.SmartSnackBar
 import com.iregados.deckarr.core.util.extension.toFormatedSpeed
 import com.iregados.deckarr.feature.downloads.components.DownloadsPager
 import com.iregados.deckarr.feature.downloads.components.RemoveTorrentDialog
+import org.koin.compose.viewmodel.koinViewModel
 
 
 @Composable
 fun DownloadsScreen(
-    downloadsViewModel: DownloadsViewModel
+    downloadsViewModel: DownloadsViewModel = koinViewModel()
 ) {
     val uiState by downloadsViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -64,6 +66,7 @@ fun DownloadsScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            downloadsViewModel.stopObserving()
         }
     }
 
@@ -90,7 +93,7 @@ fun DownloadsScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Please set up your Transmission server",
+                text = "Please set up your Torrent server",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error
             )
@@ -114,52 +117,64 @@ fun DownloadsScreen(
         return
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize(),
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        DownloadsPager(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            uiState = uiState,
-            downloadsViewModel = downloadsViewModel,
-            onRemoveTorrent = { id ->
-                showRemoveTorrentDialog = true
-                removedTorrentId = id
-            }
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainer),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize(),
         ) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Download",
-                tint = MaterialTheme.colorScheme.primary
+            DownloadsPager(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                uiState = uiState,
+                downloadsViewModel = downloadsViewModel,
+                onRemoveTorrent = { id ->
+                    showRemoveTorrentDialog = true
+                    removedTorrentId = id
+                }
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = uiState.totalDownloadSpeed.toFormatedSpeed(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = uiState.totalUploadSpeed.toFormatedSpeed(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowUp,
-                contentDescription = "Upload",
-                tint = MaterialTheme.colorScheme.primary
-            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Download",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = uiState.totalDownloadSpeed.toFormatedSpeed(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = uiState.totalUploadSpeed.toFormatedSpeed(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = "Upload",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 48.dp)
+        ) {
+            SmartSnackBar(downloadsViewModel.notificationFlow)
         }
     }
 

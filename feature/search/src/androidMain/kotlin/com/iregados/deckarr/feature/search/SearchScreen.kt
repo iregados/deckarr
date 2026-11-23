@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -12,10 +14,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopSearchBar
-import androidx.compose.material3.rememberSearchBarState
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.iregados.deckarr.feature.movies.movie_detail.navigation.keys.MovieDetailKey
@@ -31,7 +36,9 @@ import com.iregados.deckarr.feature.search.components.MoviesListResult
 import com.iregados.deckarr.feature.search.components.SearchTopSelector
 import com.iregados.deckarr.feature.search.components.SeriesListResult
 import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun SearchScreen(
@@ -41,61 +48,65 @@ fun SearchScreen(
     searchViewModel: SearchViewModel = koinViewModel()
 ) {
     val uiState by searchViewModel.uiState.collectAsStateWithLifecycle()
-
-    val searchBarState = rememberSearchBarState()
     val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
+        delay(150.milliseconds)
         focusRequester.requestFocus()
+        keyboardController?.show()
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopSearchBar(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                state = searchBarState,
-                inputField = {
-                    SearchBarDefaults.InputField(
-                        modifier = Modifier.focusRequester(focusRequester),
-                        query = uiState.query,
-                        onQueryChange = {
-                            searchViewModel.onEvent(
-                                SearchEvent.SetQuery(it)
-                            )
+            TopAppBar(
+                title = {
+                    TextField(
+                        value = uiState.query,
+                        onValueChange = {
+                            searchViewModel.onEvent(SearchEvent.SetQuery(it))
                         },
-                        onSearch = {
-                            searchViewModel.onEvent(
-                                SearchEvent.SetQuery(it)
-                            )
-                        },
-                        expanded = false,
-                        onExpandedChange = {},
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
                         placeholder = { Text("Search...") },
-                        leadingIcon = {
-                            IconButton(
-                                onClick = { popMainBackStack() }
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back"
-                                )
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                keyboardController?.hide()
+                                searchViewModel.onEvent(SearchEvent.SetQuery(uiState.query))
                             }
-                        },
-                        trailingIcon = {
-                            if (!uiState.query.isEmpty()) {
-                                IconButton(
-                                    onClick = { searchViewModel.onEvent(SearchEvent.SetQuery("")) }
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Clear"
-                                    )
-                                }
-                            }
-                        },
+                        ),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { popMainBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    if (uiState.query.isNotEmpty()) {
+                        IconButton(
+                            onClick = { searchViewModel.onEvent(SearchEvent.SetQuery("")) }
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Clear"
+                            )
+                        }
+                    }
                 }
             )
         }
@@ -129,6 +140,7 @@ fun SearchScreen(
                     MoviesListResult(
                         movies = uiState.movies,
                         needsConfiguration = uiState.radarrNeedsConfiguration,
+                        error = uiState.error,
                         onSelect = {
                             navigateMainTo(
                                 MovieDetailKey(it)
@@ -139,6 +151,7 @@ fun SearchScreen(
                     SeriesListResult(
                         series = uiState.series,
                         needsConfiguration = uiState.sonarrNeedsConfiguration,
+                        error = uiState.error,
                         onSelect = {
                             navigateMainTo(
                                 SeriesDetailKey(it)

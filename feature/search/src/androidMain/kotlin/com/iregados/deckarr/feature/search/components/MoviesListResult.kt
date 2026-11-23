@@ -21,9 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.iregados.api.common.dto.CoverType
-import com.iregados.api.radarr.dto.Movie
-import com.iregados.deckarr.core.presentation.components.CustomAsyncImage
+import com.iregados.deckarr.api.common.dto.CoverType
+import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.core.components.CustomAsyncImage
 import deckarr.feature.search.generated.resources.Res
 import deckarr.feature.search.generated.resources.radarr
 import org.jetbrains.compose.resources.vectorResource
@@ -33,6 +33,7 @@ fun MoviesListResult(
     movies: List<Movie>?,
     needsConfiguration: Boolean,
     onSelect: (movie: Movie) -> Unit,
+    error: String? = null,
 ) {
     if (needsConfiguration) {
         Box(
@@ -53,7 +54,7 @@ fun MoviesListResult(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Error while searching",
+                text = error ?: "Error while searching",
                 color = MaterialTheme.colorScheme.error
             )
         }

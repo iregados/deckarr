@@ -2,24 +2,19 @@ package com.iregados.deckarr.feature.home.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import com.iregados.deckarr.feature.downloads.DownloadsViewModel
+import com.iregados.deckarr.api.radarr.dto.Movie
 import com.iregados.deckarr.feature.home.HomeScreen
-import com.iregados.deckarr.feature.movies.movies.MoviesViewModel
-import com.iregados.deckarr.feature.navigation.keys.HomeKey
-import com.iregados.deckarr.feature.series.series.SeriesViewModel
+import com.iregados.deckarr.feature.home.navigation.keys.HomeKey
 
 fun EntryProviderScope<NavKey>.homeEntry(
-    navigateMainTo: (NavKey) -> Unit,
-    moviesViewModel: MoviesViewModel,
-    seriesViewModel: SeriesViewModel,
-    downloadViewModel: DownloadsViewModel
+    onMovieClick: (Movie) -> Unit,
+    onMoviesListClick: (movies: List<Movie>, title: String) -> Unit,
+    metadata: Map<String, Any> = emptyMap(),
 ) {
-    entry<HomeKey> {
+    entry<HomeKey>(metadata = metadata) {
         HomeScreen(
-            navigateMainTo = navigateMainTo,
-            moviesViewModel = moviesViewModel,
-            seriesViewModel = seriesViewModel,
-            downloadViewModel = downloadViewModel
+            onMovieClick = onMovieClick,
+            onMoviesListClick = onMoviesListClick,
         )
     }
 }

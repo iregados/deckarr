@@ -1,6 +1,6 @@
 package com.iregados.deckarr.core.util.extension
 
-import com.iregados.api.common.dto.TorrentStatus
+import com.iregados.deckarr.api.common.dto.TorrentStatus
 
 fun Int?.toFormatedStatus(): String = when (this) {
     TorrentStatus.STOPPED -> "Stopped"

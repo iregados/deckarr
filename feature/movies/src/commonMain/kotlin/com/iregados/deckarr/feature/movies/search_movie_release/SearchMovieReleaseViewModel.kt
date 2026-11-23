@@ -2,8 +2,9 @@ package com.iregados.deckarr.feature.movies.search_movie_release
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.iregados.api.radarr.dto.Movie
-import com.iregados.api.radarr.dto.RadarrRelease
+import com.iregados.deckarr.api.common.ApiResult
+import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.api.radarr.dto.RadarrRelease
 import com.iregados.deckarr.core.domain.RadarrRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,10 +34,24 @@ class SearchMovieReleaseViewModel(
             _uiState.update {
                 it.copy(
                     isLoading = true,
+                    error = null,
                 )
             }
 
-            val releases = radarrRepository.getReleases(passedMovie.id!!)
+            val movieId = passedMovie.id
+            if (movieId == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "This movie is not added to Radarr yet",
+                        radarrReleases = emptyList(),
+                    )
+                }
+                return@launch
+            }
+
+            val result = radarrRepository.getReleases(movieId)
+            val releases = result.getOrNull()
                 ?.filter { it.protocol == "torrent" }
                 ?.sortedBy { it.indexer }
                 ?.sortedBy { it.size }
@@ -46,10 +61,12 @@ class SearchMovieReleaseViewModel(
                 it.copy(
                     isLoading = false,
                     radarrReleases = releases,
+                    error = (result as? ApiResult.Error)?.message,
                 )
             }
         }
     }
+
 
     fun addReleaseToMovie(
         radarrRelease: RadarrRelease,
@@ -63,7 +80,7 @@ class SearchMovieReleaseViewModel(
 
             radarrRepository.addRelease(
                 radarrRelease = radarrRelease
-            )?.let {
+            ).getOrNull()?.let {
                 _uiState.update {
                     it.copy(
                         grabbingReleasesIds = it.grabbingReleasesIds - radarrRelease.guid,

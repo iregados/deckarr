@@ -1,0 +1,11 @@
+package com.iregados.deckarr.api.transmission.dto.internal
+
+import com.iregados.deckarr.api.transmission.dto.TransmissionSessionStats
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+internal data class SessionStatsResponse(
+    @SerialName("arguments") val arguments: TransmissionSessionStats,
+    @SerialName("result") val result: String
+)

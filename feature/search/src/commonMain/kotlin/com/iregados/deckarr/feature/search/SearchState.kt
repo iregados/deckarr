@@ -1,7 +1,6 @@
 package com.iregados.deckarr.feature.search
 
-import com.iregados.api.radarr.dto.Movie
-import com.iregados.api.sonarr.dto.Series
+import com.iregados.deckarr.api.radarr.dto.Movie
 
 data class SearchState(
     val isLoading: Boolean = false,
@@ -11,6 +10,6 @@ data class SearchState(
     val query: String = "",
     val searchType: SearchType = SearchType.Movies,
     val movies: List<Movie>? = null,
-    val series: List<Series>? = null,
+    val series: List<com.iregados.deckarr.api.sonarr.dto.Series>? = null,
 )
 
