@@ -1,7 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
 }
+
+val secrets = Properties().apply {
+    val file = rootProject.file("secrets.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+val tmdbAccessToken = secrets.getProperty("tmdb.accessToken", "").trim()
 
 android {
     namespace = "com.iregados.deckarr"
@@ -17,6 +25,8 @@ android {
         targetSdk = libs.versions.androidTargetSdk.get().toInt()
         versionCode = 3
         versionName = "0.3"
+
+        buildConfigField("String", "TMDB_ACCESS_TOKEN", "\"$tmdbAccessToken\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testProguardFiles("proguard-rules.pro")
@@ -51,6 +61,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

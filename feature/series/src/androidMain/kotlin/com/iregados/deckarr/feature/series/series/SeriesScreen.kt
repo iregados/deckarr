@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
+import com.iregados.deckarr.core.components.EmptyListPlaceholder
 import com.iregados.deckarr.core.components.SeriesCard
 import com.iregados.deckarr.core.components.SeriesListHeader
 import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
@@ -91,19 +92,20 @@ fun SeriesScreen(
             .padding(horizontal = 16.dp)
             .padding(bottom = 16.dp),
     ) {
-        SeriesListHeader(
-            title = "Missing file",
-            onClick = { title ->
-                navigateMainTo(
-                    SeriesListKey(
-                        series = uiState.missingFileSeries ?: emptyList(),
-                        title = title
+        val missingFileSeries = uiState.missingFileSeries.orEmpty()
+        if (missingFileSeries.isNotEmpty()) {
+            SeriesListHeader(
+                title = "Missing file",
+                onClick = { title ->
+                    navigateMainTo(
+                        SeriesListKey(
+                            series = missingFileSeries,
+                            title = title
+                        )
                     )
-                )
-            }
-        )
+                }
+            )
 
-        uiState.missingFileSeries?.let { missingFileSeries ->
             LazyRow(
                 modifier = Modifier,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -129,19 +131,25 @@ fun SeriesScreen(
             }
         }
 
+        val recentlyAddedSeries = uiState.recentlyAddedSeries.orEmpty()
         SeriesListHeader(
             title = "Recently added",
+            enabled = recentlyAddedSeries.isNotEmpty(),
             onClick = { title ->
                 navigateMainTo(
                     SeriesListKey(
-                        series = uiState.recentlyAddedSeries ?: emptyList(),
+                        series = recentlyAddedSeries,
                         title = title
                     )
                 )
             }
         )
 
-        uiState.recentlyAddedSeries?.let { recentlyAddedSeries ->
+        if (recentlyAddedSeries.isEmpty()) {
+            EmptyListPlaceholder(
+                message = "No recently added series"
+            )
+        } else {
             LazyRow(
                 modifier = Modifier,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -19,10 +19,14 @@ import com.iregados.deckarr.api.sonarr.methods.getSeriesByTvdbId
 import com.iregados.deckarr.api.sonarr.methods.lookupSeries
 import com.iregados.deckarr.api.sonarr.methods.removeSeriesById
 import com.iregados.deckarr.api.sonarr.methods.systemStatus
+import com.iregados.deckarr.api.tmdb.TmdbApi
+import com.iregados.deckarr.api.tmdb.methods.getPopularSeries
+import com.iregados.deckarr.api.tmdb.methods.getTrendingSeries
 import com.iregados.deckarr.core.domain.SonarrRepository
 import com.iregados.deckarr.core.domain.dto.SonarrLibraryState
 import com.iregados.deckarr.core.util.dto.Notification
 import com.iregados.deckarr.core.util.extension.emitError
+import com.iregados.deckarr.core.util.extension.toSonarrSeries
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -36,6 +40,7 @@ import kotlinx.coroutines.launch
 
 class SonarrRepositoryImpl(
     private val sonarrApi: SonarrApi,
+    private val tmdbApi: TmdbApi,
     private val scope: CoroutineScope
 ) : SonarrRepository {
     private val _libraryState = MutableStateFlow(SonarrLibraryState())
@@ -83,13 +88,32 @@ class SonarrRepositoryImpl(
         return coroutineScope {
             val seriesDeferred = async { getSeries() }
             val rootFoldersDeferred = async { getRootFolders() }
+            val popularDeferred = async { tmdbApi.getPopularSeries() }
+            val trendingDeferred = async { tmdbApi.getTrendingSeries() }
 
             val seriesResult = seriesDeferred.await()
             val rootFoldersResult = rootFoldersDeferred.await()
+            val popularResult = popularDeferred.await()
+            val trendingResult = trendingDeferred.await()
+
+            val librarySeries = seriesResult.getOrNull() ?: _libraryState.value.series
+            val libraryByTmdbId = librarySeries
+                .orEmpty()
+                .filter { it.tmdbId != 0L }
+                .associateBy { it.tmdbId }
+
+            val popularSeries = popularResult.getOrNull()?.results?.map { tmdbSeries ->
+                libraryByTmdbId[tmdbSeries.id] ?: tmdbSeries.toSonarrSeries()
+            }
+            val trendingSeries = trendingResult.getOrNull()?.results?.map { tmdbSeries ->
+                libraryByTmdbId[tmdbSeries.id] ?: tmdbSeries.toSonarrSeries()
+            }
 
             _libraryState.update { state ->
                 state.copy(
                     series = seriesResult.getOrNull() ?: state.series,
+                    popularSeries = popularSeries ?: state.popularSeries,
+                    trendingSeries = trendingSeries ?: state.trendingSeries,
                     rootFolders = rootFoldersResult.getOrNull() ?: state.rootFolders,
                     isLoading = false,
                     error = (seriesResult as? ApiResult.Error)?.message
@@ -105,6 +129,14 @@ class SonarrRepositoryImpl(
             if (rootFoldersError != null) {
                 _notificationFlow.emitError(
                     "Error loading root folders: ${rootFoldersError.message}"
+                )
+            }
+
+            val tmdbError = (popularResult as? ApiResult.Error)
+                ?: (trendingResult as? ApiResult.Error)
+            if (tmdbError != null) {
+                _notificationFlow.emitError(
+                    "Error loading popular/trending series: ${tmdbError.message}"
                 )
             }
 

@@ -29,6 +29,7 @@ include(
     ":api:sonarr",
     ":api:transmission",
     ":api:qbittorrent",
+    ":api:tmdb",
     ":feature:downloads",
     ":feature:movies",
     ":feature:series",

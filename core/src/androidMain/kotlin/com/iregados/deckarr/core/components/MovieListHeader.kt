@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MovieListHeader(
     title: String,
+    enabled: Boolean = true,
     onClick: (title: String) -> Unit
 ) {
     Row(
@@ -25,6 +26,7 @@ fun MovieListHeader(
             .fillMaxWidth()
             .height(56.dp)
             .clickable(
+                enabled = enabled,
                 indication = null,
                 interactionSource = null
             ) {
@@ -37,9 +39,11 @@ fun MovieListHeader(
             text = title,
             style = MaterialTheme.typography.titleMedium
         )
-        Icon(
-            imageVector = Icons.Default.MoreHoriz,
-            contentDescription = null
-        )
+        if (enabled) {
+            Icon(
+                imageVector = Icons.Default.MoreHoriz,
+                contentDescription = null
+            )
+        }
     }
 }

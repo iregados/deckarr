@@ -22,6 +22,6 @@ val repositoryModule = module {
     //REMOTE
     single<TorrentClientFactory> { TorrentClientFactoryImpl() }
     single<RadarrRepository> { RadarrRepositoryImpl(get(), get(named("AppScope"))) }
-    single<SonarrRepository> { SonarrRepositoryImpl(get(), get(named("AppScope"))) }
+    single<SonarrRepository> { SonarrRepositoryImpl(get(), get(), get(named("AppScope"))) }
     single<DownloadsRepository> { DownloadsRepositoryImpl(get(), get(), get(named("AppScope"))) }
 }

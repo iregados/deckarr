@@ -15,6 +15,7 @@ kotlin {
             implementation(projects.api.qbittorrent)
             implementation(projects.api.radarr)
             implementation(projects.api.sonarr)
+            implementation(projects.api.tmdb)
 
             implementation(libs.ktor.client.core)
             implementation(libs.datastore)

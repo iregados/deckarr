@@ -23,8 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.api.sonarr.dto.Series
+import com.iregados.deckarr.core.components.EmptyListPlaceholder
 import com.iregados.deckarr.core.components.MovieCard
 import com.iregados.deckarr.core.components.MovieListHeader
+import com.iregados.deckarr.feature.home.components.HomeSeriesSection
 import com.iregados.deckarr.feature.home.components.StatsComponent
 import org.koin.androidx.compose.koinViewModel
 
@@ -32,6 +35,8 @@ import org.koin.androidx.compose.koinViewModel
 fun HomeScreen(
     onMovieClick: (Movie) -> Unit,
     onMoviesListClick: (movies: List<Movie>, title: String) -> Unit,
+    onSeriesClick: (Series) -> Unit,
+    onSeriesListClick: (series: List<Series>, title: String) -> Unit,
     homeViewModel: HomeViewModel = koinViewModel(),
 ) {
     val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
@@ -157,17 +162,23 @@ fun HomeScreen(
         )
 
         if (!radarr.needsConfiguration) {
+            val popularMovies = radarr.popularMovies.orEmpty()
             MovieListHeader(
                 title = "Popular movies",
+                enabled = popularMovies.isNotEmpty(),
                 onClick = { title ->
                     onMoviesListClick(
-                        radarr.popularMovies ?: emptyList(),
+                        popularMovies,
                         title
                     )
                 }
             )
 
-            radarr.popularMovies?.let { popularMovies ->
+            if (popularMovies.isEmpty()) {
+                EmptyListPlaceholder(
+                    message = "No popular movies available"
+                )
+            } else {
                 LazyHorizontalGrid(
                     modifier = Modifier
                         .height(220.dp),
@@ -190,17 +201,23 @@ fun HomeScreen(
                 }
             }
 
+            val trendingMovies = radarr.trendingMovies.orEmpty()
             MovieListHeader(
                 title = "Trending movies",
+                enabled = trendingMovies.isNotEmpty(),
                 onClick = { title ->
                     onMoviesListClick(
-                        radarr.trendingMovies ?: emptyList(),
+                        trendingMovies,
                         title
                     )
                 }
             )
 
-            radarr.trendingMovies?.let { trendingMovies ->
+            if (trendingMovies.isEmpty()) {
+                EmptyListPlaceholder(
+                    message = "No trending movies available"
+                )
+            } else {
                 LazyHorizontalGrid(
                     modifier = Modifier
                         .height(220.dp),
@@ -222,6 +239,24 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        if (!sonarr.needsConfiguration) {
+            HomeSeriesSection(
+                title = "Popular series",
+                emptyMessage = "No popular series available",
+                series = sonarr.popularSeries.orEmpty(),
+                onSeriesClick = onSeriesClick,
+                onSeriesListClick = onSeriesListClick,
+            )
+
+            HomeSeriesSection(
+                title = "Trending series",
+                emptyMessage = "No trending series available",
+                series = sonarr.trendingSeries.orEmpty(),
+                onSeriesClick = onSeriesClick,
+                onSeriesListClick = onSeriesListClick,
+            )
         }
     }
 }

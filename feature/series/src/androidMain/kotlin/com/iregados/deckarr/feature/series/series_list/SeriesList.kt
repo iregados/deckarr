@@ -59,7 +59,13 @@ fun SeriesList(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(passedSeries.size, key = { index -> passedSeries[index].tvdbId }) { index ->
+            items(
+                passedSeries.size,
+                key = { index ->
+                    val item = passedSeries[index]
+                    item.tvdbId.takeIf { it != 0L } ?: -item.tmdbId
+                }
+            ) { index ->
                 SeriesCard(
                     modifier = Modifier
                         .height(120.dp)

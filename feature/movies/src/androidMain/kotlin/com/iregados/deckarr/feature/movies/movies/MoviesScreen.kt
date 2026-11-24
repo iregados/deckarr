@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
+import com.iregados.deckarr.core.components.EmptyListPlaceholder
 import com.iregados.deckarr.core.components.MovieCard
 import com.iregados.deckarr.core.components.MovieListHeader
 import com.iregados.deckarr.feature.movies.keys.MoviesListKey
@@ -91,20 +92,20 @@ fun MoviesScreen(
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState()),
     ) {
-        MovieListHeader(
-            title = "Missing file",
-            onClick = { title ->
-                navigateMainTo(
-                    MoviesListKey(
-                        movies = uiState.missingFileMovies
-                            ?: emptyList(),
-                        title = title
+        val missingFileMovies = uiState.missingFileMovies.orEmpty()
+        if (missingFileMovies.isNotEmpty()) {
+            MovieListHeader(
+                title = "Missing file",
+                onClick = { title ->
+                    navigateMainTo(
+                        MoviesListKey(
+                            movies = missingFileMovies,
+                            title = title
+                        )
                     )
-                )
-            }
-        )
+                }
+            )
 
-        uiState.missingFileMovies?.let { missingFileMovies ->
             LazyRow(
                 modifier = Modifier,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -130,38 +131,42 @@ fun MoviesScreen(
             }
         }
 
+        val recentlyAddedMovies = uiState.recentlyAddedMovies.orEmpty()
         MovieListHeader(
             title = "Recently added",
+            enabled = recentlyAddedMovies.isNotEmpty(),
             onClick = { title ->
                 navigateMainTo(
                     MoviesListKey(
-                        movies = uiState.recentlyAddedMovies ?: emptyList(),
+                        movies = recentlyAddedMovies,
                         title = title
                     )
                 )
             }
         )
 
-
-        uiState.recentlyAddedMovies?.let { recentlyDownloadedMovies ->
+        if (recentlyAddedMovies.isEmpty()) {
+            EmptyListPlaceholder(
+                message = "No recently added movies"
+            )
+        } else {
             LazyRow(
                 modifier = Modifier,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    recentlyDownloadedMovies.size, key = { index ->
-                        recentlyDownloadedMovies[index].tmdbId
-                    }
+                    recentlyAddedMovies.size,
+                    key = { index -> recentlyAddedMovies[index].tmdbId }
                 ) { index ->
                     MovieCard(
                         modifier = Modifier
                             .height(120.dp)
                             .width(200.dp),
-                        movie = recentlyDownloadedMovies[index],
+                        movie = recentlyAddedMovies[index],
                         onClick = {
                             navigateMainTo(
                                 MovieDetailKey(
-                                    recentlyDownloadedMovies[index]
+                                    recentlyAddedMovies[index]
                                 )
                             )
                         }
@@ -170,20 +175,25 @@ fun MoviesScreen(
             }
         }
 
-
+        val recommendedMovies = uiState.recommendedMovies.orEmpty()
         MovieListHeader(
             title = "Recommended",
+            enabled = recommendedMovies.isNotEmpty(),
             onClick = { title ->
                 navigateMainTo(
                     MoviesListKey(
-                        movies = uiState.recommendedMovies ?: emptyList(),
+                        movies = recommendedMovies,
                         title = title
                     )
                 )
             }
         )
 
-        uiState.recommendedMovies?.let { recommendedMovies ->
+        if (recommendedMovies.isEmpty()) {
+            EmptyListPlaceholder(
+                message = "No recommended movies available"
+            )
+        } else {
             LazyRow(
                 modifier = Modifier,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

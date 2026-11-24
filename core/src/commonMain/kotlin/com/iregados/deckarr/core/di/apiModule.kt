@@ -4,6 +4,8 @@ import com.iregados.deckarr.api.common.interfaces.TorrentClientApi
 import com.iregados.deckarr.api.common.util.ConnectionAddress
 import com.iregados.deckarr.api.radarr.RadarrApi
 import com.iregados.deckarr.api.sonarr.SonarrApi
+import com.iregados.deckarr.api.tmdb.TmdbApi
+import com.iregados.deckarr.api.tmdb.dto.TmdbApiConfig
 import com.iregados.deckarr.core.domain.PreferencesRepository
 import com.iregados.deckarr.core.domain.TorrentClientFactory
 import io.ktor.http.URLProtocol
@@ -78,6 +80,14 @@ val apiModule = module {
             }.launchIn(moduleScope)
 
         sonarrApi
+    }
+
+    single {
+        TmdbApi(
+            config = TmdbApiConfig(
+                accessToken = getProperty("tmdb.accessToken", "")
+            )
+        )
     }
 
     single {

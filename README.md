@@ -23,6 +23,24 @@ It provides a seamless experience for managing and discovering movies, series, a
 - Android SDK 36 or higher
 - JDK 21 or higher
 
+### TMDB API Key Setup
+
+Deckarr uses the [TMDB API](https://www.themoviedb.org/settings/api) to fetch Popular and Trending
+series.
+
+1. Create a free account on [TMDB](https://www.themoviedb.org/) and open **Settings → API**.
+2. Copy your **API Read Access Token** (the long Bearer token — not the short API Key).
+3. Create a `secrets.properties` file in the project root directory (next to `settings.gradle.kts`):
+
+```properties
+tmdb.accessToken=YOUR_TMDB_READ_ACCESS_TOKEN
+```
+
+4. Sync Gradle and build the project.
+
+> `secrets.properties` is listed in `.gitignore` and will not be committed to Git. The app still
+> compiles without this file, but Popular and Trending series will not load.
+
 ### Building the APK
 
 To build the release APK locally:

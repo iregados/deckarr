@@ -52,15 +52,31 @@ class SeriesDetailViewModel(
             val rootFoldersDeferred = async { sonarrRepository.getRootFolders() }
             val seriesDetailDeferred = async {
                 val sonarrId = passedSeries.id
-                if (sonarrId != null) {
-                    sonarrRepository.getSeriesBySonarrId(sonarrId)
-                } else {
-                    when (val lookup = sonarrRepository.getSeriesByTvdbId(passedSeries.tvdbId)) {
-                        is ApiResult.Success -> lookup.data.firstOrNull()?.let {
-                            ApiResult.Success(it)
-                        } ?: ApiResult.Error("Series not found")
+                when {
+                    sonarrId != null -> sonarrRepository.getSeriesBySonarrId(sonarrId)
+                    passedSeries.tvdbId != 0L -> {
+                        when (val lookup =
+                            sonarrRepository.getSeriesByTvdbId(passedSeries.tvdbId)) {
+                            is ApiResult.Success -> lookup.data.firstOrNull()?.let {
+                                ApiResult.Success(it)
+                            } ?: ApiResult.Error("Series not found")
 
-                        is ApiResult.Error -> lookup
+                            is ApiResult.Error -> lookup
+                        }
+                    }
+
+                    else -> {
+                        when (val lookup = sonarrRepository.lookupSeries(passedSeries.title)) {
+                            is ApiResult.Success -> {
+                                val matched = lookup.data.firstOrNull {
+                                    it.tmdbId == passedSeries.tmdbId
+                                } ?: lookup.data.firstOrNull()
+                                matched?.let { ApiResult.Success(it) }
+                                    ?: ApiResult.Error("Series not found")
+                            }
+
+                            is ApiResult.Error -> lookup
+                        }
                     }
                 }
             }

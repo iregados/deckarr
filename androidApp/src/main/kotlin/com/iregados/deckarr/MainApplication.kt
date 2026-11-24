@@ -22,6 +22,8 @@ class MainApplication : Application() {
             androidLogger()
             // Reference Android context
             androidContext(this@MainApplication)
+            // Getting api key from buildConfig
+            properties(mapOf("tmdb.accessToken" to BuildConfig.TMDB_ACCESS_TOKEN))
             // Load modules
             modules(
                 apiModule,

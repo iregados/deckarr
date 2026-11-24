@@ -31,6 +31,7 @@ import com.iregados.deckarr.feature.series.search_series_release.navigation.sear
 import com.iregados.deckarr.feature.series.series.navigation.seriesEntry
 import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
 import com.iregados.deckarr.feature.series.series_detail.navigation.seriesDetailEntry
+import com.iregados.deckarr.feature.series.series_list.navigation.keys.SeriesListKey
 import com.iregados.deckarr.feature.series.series_list.navigation.seriesListEntry
 import com.iregados.deckarr.feature.settings.navigation.settingsEntry
 import org.koin.androidx.compose.koinViewModel
@@ -48,6 +49,10 @@ fun MainNavigationRoot(
                 onMovieClick = { movie -> navigator.navigate(MovieDetailKey(movie)) },
                 onMoviesListClick = { movies, title ->
                     navigator.navigate(MoviesListKey(movies = movies, title = title))
+                },
+                onSeriesClick = { series -> navigator.navigate(SeriesDetailKey(series)) },
+                onSeriesListClick = { series, title ->
+                    navigator.navigate(SeriesListKey(series = series, title = title))
                 },
                 metadata = topLevelChrome(BottomNavTab.HOME),
             )
