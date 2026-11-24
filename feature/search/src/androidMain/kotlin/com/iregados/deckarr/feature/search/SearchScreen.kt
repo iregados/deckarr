@@ -30,12 +30,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation3.runtime.NavKey
-import com.iregados.deckarr.feature.movies.movie_detail.navigation.keys.MovieDetailKey
+import com.iregados.deckarr.api.radarr.dto.Movie
+import com.iregados.deckarr.api.sonarr.dto.Series
 import com.iregados.deckarr.feature.search.components.MoviesListResult
 import com.iregados.deckarr.feature.search.components.SearchTopSelector
 import com.iregados.deckarr.feature.search.components.SeriesListResult
-import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import kotlin.time.Duration.Companion.milliseconds
@@ -44,7 +43,8 @@ import kotlin.time.Duration.Companion.milliseconds
 fun SearchScreen(
     modifier: Modifier = Modifier,
     popMainBackStack: () -> Unit,
-    navigateMainTo: (NavKey) -> Unit,
+    onMovieClick: (Movie) -> Unit,
+    onSeriesClick: (Series) -> Unit,
     searchViewModel: SearchViewModel = koinViewModel()
 ) {
     val uiState by searchViewModel.uiState.collectAsStateWithLifecycle()
@@ -141,22 +141,14 @@ fun SearchScreen(
                         movies = uiState.movies,
                         needsConfiguration = uiState.radarrNeedsConfiguration,
                         error = uiState.error,
-                        onSelect = {
-                            navigateMainTo(
-                                MovieDetailKey(it)
-                            )
-                        }
+                        onSelect = onMovieClick
                     )
                 } else {
                     SeriesListResult(
                         series = uiState.series,
                         needsConfiguration = uiState.sonarrNeedsConfiguration,
                         error = uiState.error,
-                        onSelect = {
-                            navigateMainTo(
-                                SeriesDetailKey(it)
-                            )
-                        }
+                        onSelect = onSeriesClick
                     )
                 }
             }

@@ -14,8 +14,6 @@ kotlin {
             implementation(projects.api.common)
             implementation(projects.api.radarr)
             implementation(projects.api.sonarr)
-            implementation(projects.feature.movies)
-            implementation(projects.feature.series)
         }
     }
 }

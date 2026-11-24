@@ -29,6 +29,7 @@ import com.iregados.deckarr.feature.navigation.toEntries
 import com.iregados.deckarr.feature.search.navigation.searchEntry
 import com.iregados.deckarr.feature.series.search_series_release.navigation.searchSeriesReleaseEntry
 import com.iregados.deckarr.feature.series.series.navigation.seriesEntry
+import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
 import com.iregados.deckarr.feature.series.series_detail.navigation.seriesDetailEntry
 import com.iregados.deckarr.feature.series.series_list.navigation.seriesListEntry
 import com.iregados.deckarr.feature.settings.navigation.settingsEntry
@@ -63,24 +64,32 @@ fun MainNavigationRoot(
             )
 
             settingsEntry(popMainBackStack = { navigator.goBack() })
+
             searchEntry(
                 popMainBackStack = { navigator.goBack() },
-                navigateMainTo = { navigator.navigate(it) },
+                onMovieClick = { movie -> navigator.navigate(MovieDetailKey(movie)) },
+                onSeriesClick = { series -> navigator.navigate(SeriesDetailKey(series)) },
             )
+
             seriesDetailEntry(
                 popMainBackStack = { navigator.goBack() },
                 navigateMainTo = { navigator.navigate(it) },
             )
+
             movieDetailEntry(
                 popMainBackStack = { navigator.goBack() },
                 navigateMainTo = { navigator.navigate(it) },
             )
+
             searchMovieReleaseEntry(popMainBackStack = { navigator.goBack() })
+
             searchSeriesReleaseEntry(popMainBackStack = { navigator.goBack() })
+
             moviesListEntry(
                 popMainBackStack = { navigator.goBack() },
                 navigateMainTo = { navigator.navigate(it) },
             )
+
             seriesListEntry(
                 popMainBackStack = { navigator.goBack() },
                 navigateMainTo = { navigator.navigate(it) },
