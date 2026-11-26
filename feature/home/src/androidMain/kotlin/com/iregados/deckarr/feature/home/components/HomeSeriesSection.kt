@@ -1,16 +1,17 @@
 package com.iregados.deckarr.feature.home.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.iregados.deckarr.api.sonarr.dto.Series
 import com.iregados.deckarr.core.components.EmptyListPlaceholder
+import com.iregados.deckarr.core.components.MediaListSkeleton
 import com.iregados.deckarr.core.components.SeriesCard
 import com.iregados.deckarr.core.components.SeriesListHeader
 
@@ -19,6 +20,7 @@ fun HomeSeriesSection(
     title: String,
     emptyMessage: String,
     series: List<Series>,
+    isLoading: Boolean,
     onSeriesClick: (Series) -> Unit,
     onSeriesListClick: (series: List<Series>, title: String) -> Unit,
 ) {
@@ -33,32 +35,32 @@ fun HomeSeriesSection(
         }
     )
 
-    if (series.isEmpty()) {
-        EmptyListPlaceholder(
-            message = emptyMessage
+    when {
+        isLoading && series.isEmpty() -> MediaListSkeleton()
+        series.isEmpty() -> EmptyListPlaceholder(
+            message = emptyMessage,
+            icon = Icons.Outlined.Tv
         )
-    } else {
-        LazyHorizontalGrid(
-            modifier = Modifier
-                .height(220.dp),
-            rows = GridCells.Fixed(2),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                series.size,
-                key = { index ->
-                    val item = series[index]
-                    item.tvdbId.takeIf { it != 0L } ?: -item.tmdbId
+
+        else -> {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    series.size,
+                    key = { index ->
+                        val item = series[index]
+                        item.tvdbId.takeIf { it != 0L } ?: -item.tmdbId
+                    }
+                ) { index ->
+                    SeriesCard(
+                        modifier = Modifier
+                            .height(120.dp)
+                            .width(200.dp),
+                        series = series[index],
+                        onClick = { onSeriesClick(series[index]) }
+                    )
                 }
-            ) { index ->
-                SeriesCard(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(190.dp),
-                    series = series[index],
-                    onClick = { onSeriesClick(series[index]) }
-                )
             }
         }
     }

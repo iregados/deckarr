@@ -1,18 +1,16 @@
 package com.iregados.deckarr.feature.home
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,9 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iregados.deckarr.api.radarr.dto.Movie
 import com.iregados.deckarr.api.sonarr.dto.Series
-import com.iregados.deckarr.core.components.EmptyListPlaceholder
-import com.iregados.deckarr.core.components.MovieCard
-import com.iregados.deckarr.core.components.MovieListHeader
+import com.iregados.deckarr.feature.home.components.HomeCategoryHeader
+import com.iregados.deckarr.feature.home.components.HomeMoviesSection
 import com.iregados.deckarr.feature.home.components.HomeSeriesSection
 import com.iregados.deckarr.feature.home.components.StatsComponent
 import org.koin.androidx.compose.koinViewModel
@@ -162,90 +159,41 @@ fun HomeScreen(
         )
 
         if (!radarr.needsConfiguration) {
-            val popularMovies = radarr.popularMovies.orEmpty()
-            MovieListHeader(
+            HomeCategoryHeader(
+                title = "Movies",
+                icon = Icons.Outlined.Movie,
+            )
+
+            HomeMoviesSection(
                 title = "Popular movies",
-                enabled = popularMovies.isNotEmpty(),
-                onClick = { title ->
-                    onMoviesListClick(
-                        popularMovies,
-                        title
-                    )
-                }
+                emptyMessage = "No popular movies available",
+                movies = radarr.popularMovies.orEmpty(),
+                isLoading = radarr.isLoading,
+                onMovieClick = onMovieClick,
+                onMoviesListClick = onMoviesListClick,
             )
 
-            if (popularMovies.isEmpty()) {
-                EmptyListPlaceholder(
-                    message = "No popular movies available"
-                )
-            } else {
-                LazyHorizontalGrid(
-                    modifier = Modifier
-                        .height(220.dp),
-                    rows = GridCells.Fixed(2),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(
-                        popularMovies.size,
-                        key = { index -> popularMovies[index].tmdbId }
-                    ) { index ->
-                        MovieCard(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(190.dp),
-                            movie = popularMovies[index],
-                            onClick = { onMovieClick(popularMovies[index]) }
-                        )
-                    }
-                }
-            }
-
-            val trendingMovies = radarr.trendingMovies.orEmpty()
-            MovieListHeader(
+            HomeMoviesSection(
                 title = "Trending movies",
-                enabled = trendingMovies.isNotEmpty(),
-                onClick = { title ->
-                    onMoviesListClick(
-                        trendingMovies,
-                        title
-                    )
-                }
+                emptyMessage = "No trending movies available",
+                movies = radarr.trendingMovies.orEmpty(),
+                isLoading = radarr.isLoading,
+                onMovieClick = onMovieClick,
+                onMoviesListClick = onMoviesListClick,
             )
-
-            if (trendingMovies.isEmpty()) {
-                EmptyListPlaceholder(
-                    message = "No trending movies available"
-                )
-            } else {
-                LazyHorizontalGrid(
-                    modifier = Modifier
-                        .height(220.dp),
-                    rows = GridCells.Fixed(2),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(
-                        trendingMovies.size,
-                        key = { index -> trendingMovies[index].tmdbId }
-                    ) { index ->
-                        MovieCard(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(190.dp),
-                            movie = trendingMovies[index],
-                            onClick = { onMovieClick(trendingMovies[index]) }
-                        )
-                    }
-                }
-            }
         }
 
         if (!sonarr.needsConfiguration) {
+            HomeCategoryHeader(
+                title = "Series",
+                icon = Icons.Outlined.Tv,
+            )
+
             HomeSeriesSection(
                 title = "Popular series",
                 emptyMessage = "No popular series available",
                 series = sonarr.popularSeries.orEmpty(),
+                isLoading = sonarr.isLoading,
                 onSeriesClick = onSeriesClick,
                 onSeriesListClick = onSeriesListClick,
             )
@@ -254,6 +202,7 @@ fun HomeScreen(
                 title = "Trending series",
                 emptyMessage = "No trending series available",
                 series = sonarr.trendingSeries.orEmpty(),
+                isLoading = sonarr.isLoading,
                 onSeriesClick = onSeriesClick,
                 onSeriesListClick = onSeriesListClick,
             )

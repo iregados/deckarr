@@ -206,7 +206,8 @@ class SeriesDetailViewModel(
         deleteFiles: Boolean,
     ) {
         viewModelScope.launch {
-            val oldId = _uiState.value.series?.id
+            val currentSeries = _uiState.value.series
+            val oldId = currentSeries?.id
             if (oldId == null) {
                 _notificationFlow.emitError("Error removing series: series is not loaded")
                 return@launch
@@ -247,7 +248,7 @@ class SeriesDetailViewModel(
             }
 
             when (val seriesDetailResult =
-                sonarrRepository.getSeriesByTvdbId(passedSeries.tvdbId)) {
+                sonarrRepository.getSeriesByTvdbId(currentSeries.tvdbId)) {
                 is ApiResult.Success -> {
                     val seriesDetail = seriesDetailResult.data.firstOrNull()
                     if (seriesDetail != null) {

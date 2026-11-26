@@ -20,10 +20,11 @@ class SeriesViewModel(
             sonarrRepository.libraryState.value.toSeriesState()
         )
 
-    private fun SonarrLibraryState.toSeriesState(): SeriesState = SeriesState(
+    private fun SonarrLibraryState.toSeriesState() = SeriesState(
         isLoading = isLoading,
         needsConfiguration = needsConfiguration,
         error = error,
+        recommendedSeries = recommendedSeries,
         rootFolders = rootFolders,
     ).withSeries(series)
 }

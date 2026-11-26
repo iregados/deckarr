@@ -21,14 +21,17 @@ import com.iregados.deckarr.api.sonarr.methods.removeSeriesById
 import com.iregados.deckarr.api.sonarr.methods.systemStatus
 import com.iregados.deckarr.api.tmdb.TmdbApi
 import com.iregados.deckarr.api.tmdb.methods.getPopularSeries
+import com.iregados.deckarr.api.tmdb.methods.getSeriesRecommendations
 import com.iregados.deckarr.api.tmdb.methods.getTrendingSeries
 import com.iregados.deckarr.core.domain.SonarrRepository
 import com.iregados.deckarr.core.domain.dto.SonarrLibraryState
 import com.iregados.deckarr.core.util.dto.Notification
 import com.iregados.deckarr.core.util.extension.emitError
+import com.iregados.deckarr.core.util.extension.mergeSeriesRecommendations
 import com.iregados.deckarr.core.util.extension.toSonarrSeries
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,6 +105,29 @@ class SonarrRepositoryImpl(
                 .filter { it.tmdbId != 0L }
                 .associateBy { it.tmdbId }
 
+            val seedIds = librarySeries
+                .orEmpty()
+                .filter { it.tmdbId != 0L }
+                .sortedByDescending { it.added }
+                .take(10)
+                .map { it.tmdbId }
+
+            val recommendationResults = seedIds
+                .map { tmdbId -> async { tmdbApi.getSeriesRecommendations(tmdbId) } }
+                .awaitAll()
+
+            val successfulRecommendations = recommendationResults
+                .mapNotNull { it.getOrNull()?.results }
+
+            val recommendedSeries = when {
+                librarySeries == null -> null
+                seedIds.isEmpty() -> emptyList()
+                successfulRecommendations.isNotEmpty() ->
+                    successfulRecommendations.mergeSeriesRecommendations(libraryByTmdbId.keys)
+
+                else -> null
+            }
+
             val popularSeries = popularResult.getOrNull()?.results?.map { tmdbSeries ->
                 libraryByTmdbId[tmdbSeries.id] ?: tmdbSeries.toSonarrSeries()
             }
@@ -112,6 +138,7 @@ class SonarrRepositoryImpl(
             _libraryState.update { state ->
                 state.copy(
                     series = seriesResult.getOrNull() ?: state.series,
+                    recommendedSeries = recommendedSeries ?: state.recommendedSeries,
                     popularSeries = popularSeries ?: state.popularSeries,
                     trendingSeries = trendingSeries ?: state.trendingSeries,
                     rootFolders = rootFoldersResult.getOrNull() ?: state.rootFolders,
@@ -132,11 +159,19 @@ class SonarrRepositoryImpl(
                 )
             }
 
+            val recommendationError =
+                if (seedIds.isNotEmpty() && successfulRecommendations.isEmpty()) {
+                    recommendationResults.firstNotNullOfOrNull { it as? ApiResult.Error }
+                } else {
+                    null
+                }
+
             val tmdbError = (popularResult as? ApiResult.Error)
                 ?: (trendingResult as? ApiResult.Error)
+                ?: recommendationError
             if (tmdbError != null) {
                 _notificationFlow.emitError(
-                    "Error loading popular/trending series: ${tmdbError.message}"
+                    "Error loading TMDB series data: ${tmdbError.message}"
                 )
             }
 

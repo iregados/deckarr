@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.iregados.deckarr.core.components.EmptyListPlaceholder
+import com.iregados.deckarr.core.components.MediaListSkeleton
 import com.iregados.deckarr.core.components.SeriesCard
 import com.iregados.deckarr.core.components.SeriesListHeader
 import com.iregados.deckarr.feature.series.series_detail.navigation.keys.SeriesDetailKey
@@ -36,21 +39,6 @@ fun SeriesScreen(
     seriesViewModel: SeriesViewModel = koinViewModel(),
 ) {
     val uiState by seriesViewModel.uiState.collectAsStateWithLifecycle()
-
-    if (uiState.isLoading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.TopStart
-        ) {
-            LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            )
-        }
-        return
-    }
 
     if (uiState.needsConfiguration) {
         Box(
@@ -68,7 +56,7 @@ fun SeriesScreen(
         return
     }
 
-    if (uiState.series == null) {
+    if (!uiState.isLoading && uiState.series == null) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,6 +80,14 @@ fun SeriesScreen(
             .padding(horizontal = 16.dp)
             .padding(bottom = 16.dp),
     ) {
+        if (uiState.isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            )
+        }
+
         val missingFileSeries = uiState.missingFileSeries.orEmpty()
         if (missingFileSeries.isNotEmpty()) {
             SeriesListHeader(
@@ -145,32 +141,87 @@ fun SeriesScreen(
             }
         )
 
-        if (recentlyAddedSeries.isEmpty()) {
-            EmptyListPlaceholder(
-                message = "No recently added series"
+        when {
+            uiState.isLoading && recentlyAddedSeries.isEmpty() -> MediaListSkeleton()
+            recentlyAddedSeries.isEmpty() -> EmptyListPlaceholder(
+                message = "No recently added series",
+                icon = Icons.Outlined.Tv
             )
-        } else {
-            LazyRow(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    recentlyAddedSeries.size,
-                    key = { index -> recentlyAddedSeries[index].tvdbId }
-                ) { index ->
-                    SeriesCard(
-                        modifier = Modifier
-                            .height(120.dp)
-                            .width(200.dp),
-                        series = recentlyAddedSeries[index],
-                        onClick = {
-                            navigateMainTo(
-                                SeriesDetailKey(
-                                    recentlyAddedSeries[index]
+
+            else -> {
+                LazyRow(
+                    modifier = Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        recentlyAddedSeries.size,
+                        key = { index -> recentlyAddedSeries[index].tvdbId }
+                    ) { index ->
+                        SeriesCard(
+                            modifier = Modifier
+                                .height(120.dp)
+                                .width(200.dp),
+                            series = recentlyAddedSeries[index],
+                            onClick = {
+                                navigateMainTo(
+                                    SeriesDetailKey(
+                                        recentlyAddedSeries[index]
+                                    )
                                 )
-                            )
-                        }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        val recommendedSeries = uiState.recommendedSeries.orEmpty()
+        SeriesListHeader(
+            title = "Recommended",
+            enabled = recommendedSeries.isNotEmpty(),
+            onClick = { title ->
+                navigateMainTo(
+                    SeriesListKey(
+                        series = recommendedSeries,
+                        title = title
                     )
+                )
+            }
+        )
+
+        when {
+            uiState.isLoading && recommendedSeries.isEmpty() -> MediaListSkeleton()
+            recommendedSeries.isEmpty() -> EmptyListPlaceholder(
+                message = "No recommended series available",
+                icon = Icons.Outlined.Tv
+            )
+
+            else -> {
+                LazyRow(
+                    modifier = Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        recommendedSeries.size,
+                        key = { index ->
+                            val item = recommendedSeries[index]
+                            item.tvdbId.takeIf { it != 0L } ?: -item.tmdbId
+                        }
+                    ) { index ->
+                        SeriesCard(
+                            modifier = Modifier
+                                .height(120.dp)
+                                .width(200.dp),
+                            series = recommendedSeries[index],
+                            onClick = {
+                                navigateMainTo(
+                                    SeriesDetailKey(
+                                        recommendedSeries[index]
+                                    )
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.iregados.deckarr.core.components.EmptyListPlaceholder
+import com.iregados.deckarr.core.components.MediaListSkeleton
 import com.iregados.deckarr.core.components.MovieCard
 import com.iregados.deckarr.core.components.MovieListHeader
 import com.iregados.deckarr.feature.movies.keys.MoviesListKey
@@ -36,22 +39,6 @@ fun MoviesScreen(
     moviesViewModel: MoviesViewModel = koinViewModel(),
 ) {
     val uiState by moviesViewModel.uiState.collectAsStateWithLifecycle()
-
-    if (uiState.isLoading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.TopStart
-        ) {
-            LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp)
-            )
-        }
-        return
-    }
 
     if (uiState.needsConfiguration) {
         Box(
@@ -69,7 +56,7 @@ fun MoviesScreen(
         return
     }
 
-    if (uiState.movies == null) {
+    if (!uiState.isLoading && uiState.movies == null) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,6 +79,14 @@ fun MoviesScreen(
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState()),
     ) {
+        if (uiState.isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            )
+        }
+
         val missingFileMovies = uiState.missingFileMovies.orEmpty()
         if (missingFileMovies.isNotEmpty()) {
             MovieListHeader(
@@ -145,36 +140,40 @@ fun MoviesScreen(
             }
         )
 
-        if (recentlyAddedMovies.isEmpty()) {
-            EmptyListPlaceholder(
-                message = "No recently added movies"
+        when {
+            uiState.isLoading && recentlyAddedMovies.isEmpty() -> MediaListSkeleton()
+
+            recentlyAddedMovies.isEmpty() -> EmptyListPlaceholder(
+                message = "No recently added movies",
+                icon = Icons.Outlined.Movie
             )
-        } else {
-            LazyRow(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    recentlyAddedMovies.size,
-                    key = { index -> recentlyAddedMovies[index].tmdbId }
-                ) { index ->
-                    MovieCard(
-                        modifier = Modifier
-                            .height(120.dp)
-                            .width(200.dp),
-                        movie = recentlyAddedMovies[index],
-                        onClick = {
-                            navigateMainTo(
-                                MovieDetailKey(
-                                    recentlyAddedMovies[index]
+
+            else -> {
+                LazyRow(
+                    modifier = Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        recentlyAddedMovies.size,
+                        key = { index -> recentlyAddedMovies[index].tmdbId }
+                    ) { index ->
+                        MovieCard(
+                            modifier = Modifier
+                                .height(120.dp)
+                                .width(200.dp),
+                            movie = recentlyAddedMovies[index],
+                            onClick = {
+                                navigateMainTo(
+                                    MovieDetailKey(
+                                        recentlyAddedMovies[index]
+                                    )
                                 )
-                            )
-                        }
-                    )
+                            }
+                        )
+                    }
                 }
             }
         }
-
         val recommendedMovies = uiState.recommendedMovies.orEmpty()
         MovieListHeader(
             title = "Recommended",
@@ -189,32 +188,37 @@ fun MoviesScreen(
             }
         )
 
-        if (recommendedMovies.isEmpty()) {
-            EmptyListPlaceholder(
-                message = "No recommended movies available"
+        when {
+            uiState.isLoading && recommendedMovies.isEmpty() -> MediaListSkeleton()
+            
+            recommendedMovies.isEmpty() -> EmptyListPlaceholder(
+                message = "No recommended movies available",
+                icon = Icons.Outlined.Movie
             )
-        } else {
-            LazyRow(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    recommendedMovies.size,
-                    key = { index -> recommendedMovies[index].tmdbId }
-                ) { index ->
-                    MovieCard(
-                        modifier = Modifier
-                            .height(120.dp)
-                            .width(200.dp),
-                        movie = recommendedMovies[index],
-                        onClick = {
-                            navigateMainTo(
-                                MovieDetailKey(
-                                    recommendedMovies[index]
+
+            else -> {
+                LazyRow(
+                    modifier = Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        recommendedMovies.size,
+                        key = { index -> recommendedMovies[index].tmdbId }
+                    ) { index ->
+                        MovieCard(
+                            modifier = Modifier
+                                .height(120.dp)
+                                .width(200.dp),
+                            movie = recommendedMovies[index],
+                            onClick = {
+                                navigateMainTo(
+                                    MovieDetailKey(
+                                        recommendedMovies[index]
+                                    )
                                 )
-                            )
-                        }
-                    )
+                            }
+                        )
+                    }
                 }
             }
         }

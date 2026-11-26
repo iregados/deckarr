@@ -1,5 +1,5 @@
 [versions]
-agp = "9.5.2"
+agp = "9.5.3"
 jdk = "21"
 androidCompileSdk = "37"
 androidCompileSdkMinor = "2"

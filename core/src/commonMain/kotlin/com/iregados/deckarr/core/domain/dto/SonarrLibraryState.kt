@@ -9,6 +9,7 @@ data class SonarrLibraryState(
     val needsConfiguration: Boolean = false,
     val error: String? = null,
     val series: List<Series>? = null,
+    val recommendedSeries: List<Series>? = null,
     val trendingSeries: List<Series>? = null,
     val popularSeries: List<Series>? = null,
     val rootFolders: List<SonarrRootFolder>? = null,

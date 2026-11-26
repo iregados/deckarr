@@ -1,11 +1,13 @@
 package com.iregados.deckarr.api.sonarr.methods
 
 import com.iregados.deckarr.api.common.ApiResult
+import com.iregados.deckarr.api.sonarr.SonarrApi
+import com.iregados.deckarr.api.sonarr.dto.SonarrRelease
 
-suspend fun com.iregados.deckarr.api.sonarr.SonarrApi.addRelease(
-    sonarrRelease: com.iregados.deckarr.api.sonarr.dto.SonarrRelease,
-): ApiResult<com.iregados.deckarr.api.sonarr.dto.SonarrRelease> {
+suspend fun SonarrApi.addRelease(
+    sonarrRelease: SonarrRelease,
+): ApiResult<SonarrRelease> {
     return apiPost<
-            com.iregados.deckarr.api.sonarr.dto.SonarrRelease, com.iregados.deckarr.api.sonarr.dto.SonarrRelease
+            SonarrRelease, SonarrRelease
             >("/api/v3/release", sonarrRelease)
 }

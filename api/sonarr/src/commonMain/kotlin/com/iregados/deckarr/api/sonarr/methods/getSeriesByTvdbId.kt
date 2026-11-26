@@ -1,11 +1,13 @@
 package com.iregados.deckarr.api.sonarr.methods
 
 import com.iregados.deckarr.api.common.ApiResult
+import com.iregados.deckarr.api.sonarr.SonarrApi
+import com.iregados.deckarr.api.sonarr.dto.Series
 
-suspend fun com.iregados.deckarr.api.sonarr.SonarrApi.getSeriesByTvdbId(tvdbId: Long): ApiResult<List<com.iregados.deckarr.api.sonarr.dto.Series>> {
+suspend fun SonarrApi.getSeriesByTvdbId(tvdbId: Long): ApiResult<List<Series>> {
     val response = apiGet<
-            List<com.iregados.deckarr.api.sonarr.dto.Series>
-            >("/api/v3/series/lookup?term=tvdbId:$tvdbId")
+            List<Series>
+            >("/api/v3/series/lookup?term=tvdb:$tvdbId")
 
     return when (response) {
         is ApiResult.Success -> ApiResult.Success(
